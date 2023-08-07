@@ -717,6 +717,7 @@ class ContainerappServiceBindingTests(ScenarioTest):
         postgres_ca_name = 'postgres'
         kafka_ca_name = 'kafka'
         mariadb_ca_name = 'mariadb'
+        qdrant_ca_name = "qdrant"
 
         create_containerapp_env(self, env_name, resource_group)
 
@@ -731,6 +732,9 @@ class ContainerappServiceBindingTests(ScenarioTest):
 
         self.cmd('containerapp service mariadb create -g {} -n {} --environment {}'.format(
             resource_group, mariadb_ca_name, env_name))
+        
+        self.cmd('containerapp service qdrantvdb create -g {} -n {} --environment {}'.format(
+            resource_group, qdrant_ca_name, env_name))
 
         self.cmd('containerapp create -g {} -n {} --environment {} --image {} --bind postgres:postgres_binding redis'.format(
             resource_group, ca_name, env_name, image), checks=[
@@ -743,12 +747,13 @@ class ContainerappServiceBindingTests(ScenarioTest):
             JMESPathCheck('properties.template.serviceBinds[0].name', "redis"),
         ])
 
-        self.cmd('containerapp update -g {} -n {} --bind postgres:postgres_binding kafka mariadb'.format(
+        self.cmd('containerapp update -g {} -n {} --bind postgres:postgres_binding kafka mariadb qdrant'.format(
             resource_group, ca_name, image), checks=[
             JMESPathCheck('properties.template.serviceBinds[0].name', "redis"),
             JMESPathCheck('properties.template.serviceBinds[1].name', "postgres_binding"),
             JMESPathCheck('properties.template.serviceBinds[2].name', "kafka"),
-            JMESPathCheck('properties.template.serviceBinds[3].name', "mariadb")
+            JMESPathCheck('properties.template.serviceBinds[3].name', "mariadb"),
+            JMESPathCheck('properties.template.serviceBinds[4].name', "qdrant")
         ])
 
         self.cmd('containerapp service postgres delete -g {} -n {} --yes'.format(
@@ -762,6 +767,9 @@ class ContainerappServiceBindingTests(ScenarioTest):
 
         self.cmd('containerapp service mariadb delete -g {} -n {} --yes'.format(
             resource_group, mariadb_ca_name, env_name))
+        
+        self.cmd('containerapp service qdrantvdb delete -g {} -n {} --yes'.format(
+            resource_group, qdrant_ca_name, env_name))        
 
         self.cmd('containerapp service list -g {} --environment {}'.format(resource_group, env_name), checks=[
             JMESPathCheck('length(@)', 0),
