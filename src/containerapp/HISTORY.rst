@@ -21,6 +21,7 @@ upcoming
 
 0.3.37
 ++++++
+* 'az containerapp service': add support for creation and deletion of Qdrant
 * 'az containerapp job start': update start execution payload format to exlude template property from API version 2023-05-01 onwards
 * 'az containerapp service': add support for creation and deletion of MariaDB
 * 'az containerapp create/list': support --environment-type parameter
