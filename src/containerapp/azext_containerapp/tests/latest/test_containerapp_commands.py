@@ -733,7 +733,7 @@ class ContainerappServiceBindingTests(ScenarioTest):
         self.cmd('containerapp service mariadb create -g {} -n {} --environment {}'.format(
             resource_group, mariadb_ca_name, env_name))
         
-        self.cmd('containerapp service qdrantvdb create -g {} -n {} --environment {}'.format(
+        self.cmd('containerapp service qdrant create -g {} -n {} --environment {}'.format(
             resource_group, qdrant_ca_name, env_name))
 
         self.cmd('containerapp create -g {} -n {} --environment {} --image {} --bind postgres:postgres_binding redis'.format(
@@ -768,7 +768,7 @@ class ContainerappServiceBindingTests(ScenarioTest):
         self.cmd('containerapp service mariadb delete -g {} -n {} --yes'.format(
             resource_group, mariadb_ca_name, env_name))
         
-        self.cmd('containerapp service qdrantvdb delete -g {} -n {} --yes'.format(
+        self.cmd('containerapp service qdrant delete -g {} -n {} --yes'.format(
             resource_group, qdrant_ca_name, env_name))        
 
         self.cmd('containerapp service list -g {} --environment {}'.format(resource_group, env_name), checks=[

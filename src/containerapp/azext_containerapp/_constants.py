@@ -24,7 +24,7 @@ SERVICE_LINKER_RP = "Microsoft.ServiceLinker"
 MANAGED_CERTIFICATE_RT = "managedCertificates"
 PRIVATE_CERTIFICATE_RT = "certificates"
 
-DEV_SERVICE_LIST = ["kafka", "postgres", "redis", "mariadb", "qdrantvdb"]
+DEV_SERVICE_LIST = ["kafka", "postgres", "redis", "mariadb", "qdrant"]
 
 DEV_KAFKA_IMAGE = 'kafka'
 DEV_KAFKA_SERVICE_TYPE = 'kafka'
@@ -43,7 +43,7 @@ DEV_MARIADB_SERVICE_TYPE = 'mariadb'
 DEV_MARIADB_CONTAINER_NAME = 'mariadb'
 
 DEV_QDRANT_IMAGE = 'qdrant'
-DEV_QDRANT_SERVICE_TYPE = 'qdrantvdb'
+DEV_QDRANT_SERVICE_TYPE = 'qdrant'
 DEV_QDRANT_CONTAINER_NAME = 'qdrant'
 
 PENDING_STATUS = "Pending"

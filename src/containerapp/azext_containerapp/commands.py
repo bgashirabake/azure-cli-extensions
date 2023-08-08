@@ -104,9 +104,9 @@ def load_command_table(self, _):
         g.custom_command('create', 'create_mariadb_service', supports_no_wait=True)
         g.custom_command('delete', 'delete_mariadb_service', confirmation=True, supports_no_wait=True)
 
-    with self.command_group('containerapp service qdrantvdb') as g:
-        g.custom_command('create', 'create_qdrantvdb_service', supports_no_wait=True)
-        g.custom_command('delete', 'delete_qdrantvdb_service', confirmation=True, supports_no_wait=True)        
+    with self.command_group('containerapp service qdrant') as g:
+        g.custom_command('create', 'create_qdrant_service', supports_no_wait=True)
+        g.custom_command('delete', 'delete_qdrant_service', confirmation=True, supports_no_wait=True)        
 
     with self.command_group('containerapp identity') as g:
         g.custom_command('assign', 'assign_managed_identity', supports_no_wait=True, exception_handler=ex_handler_factory())

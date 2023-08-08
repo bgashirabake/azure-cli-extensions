@@ -242,14 +242,14 @@ def create_mariadb_service(cmd, service_name, environment_name, resource_group_n
 def delete_mariadb_service(cmd, service_name, resource_group_name, no_wait=False):
     return DevServiceUtils.delete_service(cmd, service_name, resource_group_name, no_wait, DEV_MARIADB_SERVICE_TYPE)
 
-def create_qdrantvdb_service(cmd, service_name, environment_name, resource_group_name, no_wait=False,
+def create_qdrant_service(cmd, service_name, environment_name, resource_group_name, no_wait=False,
                            disable_warnings=True):
     return DevServiceUtils.create_service(cmd, service_name, environment_name, resource_group_name, no_wait,
                                           disable_warnings, DEV_QDRANT_IMAGE, DEV_QDRANT_SERVICE_TYPE,
                                           DEV_QDRANT_CONTAINER_NAME)
 
 
-def delete_qdrantvdb_service(cmd, service_name, resource_group_name, no_wait=False):
+def delete_qdrant_service(cmd, service_name, resource_group_name, no_wait=False):
     return DevServiceUtils.delete_service(cmd, service_name, resource_group_name, no_wait, DEV_QDRANT_SERVICE_TYPE)
 
 
