@@ -3,7 +3,7 @@
 Release History
 ===============
 
-Upcoming
+0.3.37
 ++++++
 * 'az containerapp service': add support for creation and deletion of Qdrant
 * 'az containerapp job start': update start execution payload format to exlude template property from API version 2023-05-01 onwards
@@ -12,6 +12,7 @@ Upcoming
 * 'az containerapp logs show': fix raising error for response status code is not OK
 * 'az containerapp auth show/update': support api-version 2023-05-02-preview
 * 'az containerapp create': --yaml support property additionalPortMappings for api-version 2023-05-02-preview
+* 'az containerapp create': add support for insecure ingress with flag --allow-insecure
 
 0.3.36
 ++++++
