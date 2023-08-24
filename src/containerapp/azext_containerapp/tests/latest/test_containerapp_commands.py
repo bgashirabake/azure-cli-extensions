@@ -775,7 +775,32 @@ class ContainerappServiceBindingTests(ScenarioTest):
         self.cmd('containerapp service list -g {} --environment {}'.format(resource_group, env_name), checks=[
             JMESPathCheck('length(@)', 0),
         ])
+    
+    @AllowLargeResponse(8192)
+    @ResourceGroupPreparer(location="eastus2")
+    def test_containerapp_qdrant_service_binding_e2e(self, resource_group):
+        self.cmd('configure --defaults location={}'.format(TEST_LOCATION))
+        qdrant_ca_name = "qdrant"
 
+        env_name = self.create_random_name(prefix='containerapp-env', length=24)
+        ca_name = self.create_random_name(prefix='containerapp', length=24)
+        image = "mcr.microsoft.com/azuredocs/containerapps-helloworld:latest"
+        self.cmd('containerapp create -g {} -n {} --environment {} --image {} --bind qdrant'.format(
+            resource_group, ca_name, env_name, image), checks=[
+            JMESPathCheck('properties.template.serviceBinds[0].name', "qdrant")
+        ])
+
+        self.cmd('containerapp service qdrant create -g {} -n {} --environment {}'.format(
+            resource_group, qdrant_ca_name, env_name))
+        self.cmd('containerapp update -g {} -n {} --bind qdrant:qdrantbinding'.format(
+            resource_group, ca_name, image), checks=[
+            JMESPathCheck('properties.template.serviceBinds[0].name', "qdrantbinding")
+        ])
+        self.cmd('containerapp service qdrant delete -g {} -n {} --yes'.format(
+            resource_group, qdrant_ca_name, env_name))
+        self.cmd('containerapp service list -g {} --environment {}'.format(resource_group, env_name), checks=[
+            JMESPathCheck('length(@)', 0),
+        ])  
 
 class ContainerappEnvStorageTests(ScenarioTest):
     @AllowLargeResponse(8192)
