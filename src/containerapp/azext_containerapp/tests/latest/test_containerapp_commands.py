@@ -834,6 +834,13 @@ class ContainerappServiceBindingTests(ScenarioTest):
             resource_group, ca_name, env_name, mysqlserver, flex_binding, mysqldb , mysqlusername, mysqlpassword))
         self.cmd('containerapp show -g {} -n {}'.format(resource_group, ca_name), checks=[
             JMESPathCheck('length(properties.template.containers[0].env[?name==`AZURE_MYSQL_HOST`])', 1)
+        image = "mcr.microsoft.com/azuredocs/containerapps-helloworld:latest"
+        create_containerapp_env(self, env_name, resource_group)
+        self.cmd('containerapp service qdrant create -g {} -n {} --environment {}'.format(
+            resource_group, qdrant_ca_name, env_name))
+        self.cmd('containerapp create -g {} -n {} --environment {} --image {} --bind qdrant'.format(
+            resource_group, ca_name, env_name, image), checks=[
+            JMESPathCheck('properties.template.serviceBinds[0].name', "qdrant")
         ])
 
         self.cmd('containerapp update -g {} -n {} --bind {},database={},username={},password={}'.format(
@@ -841,6 +848,15 @@ class ContainerappServiceBindingTests(ScenarioTest):
         self.cmd('containerapp show -g {} -n {}'.format(resource_group, ca_name), checks=[
             JMESPathCheck('length(properties.template.containers[0].env[?name==`AZURE_MYSQL_HOST`])', 1),
             JMESPathCheck('length(properties.template.containers[0].env[?name==`AZURE_POSTGRESQL_HOST`])', 1)
+        ])
+        self.cmd('containerapp update -g {} -n {} --bind qdrant:qdrantbinding'.format(
+            resource_group, ca_name, image), checks=[
+            JMESPathCheck('properties.template.serviceBinds[0].name', "qdrantbinding")
+        ])
+        self.cmd('containerapp service qdrant delete -g {} -n {} --yes'.format(
+            resource_group, qdrant_ca_name, env_name))
+        self.cmd('containerapp service list -g {} --environment {}'.format(resource_group, env_name), checks=[
+            JMESPathCheck('length(@)', 0),
         ])
 
 
