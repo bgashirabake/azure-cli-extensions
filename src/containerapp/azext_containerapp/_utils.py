@@ -514,8 +514,8 @@ def check_unique_bindings(cmd, service_connectors_def_list, service_bindings_def
     else:
         # There are no duplicate elements among the lists or within any of the lists
         return True
-'''
-def check_unique_dapr2bindings(cmd, service_connectors_def_list, service_bindings_def_list, resource_group_name, name):
+
+def check_unique_dapr_bindings(cmd, service_connectors_def_list, service_bindings_def_list, resource_group_name, name):
     linker_client = get_linker_client(cmd)
     daprComponent_def = None
 
@@ -554,8 +554,7 @@ def check_unique_dapr2bindings(cmd, service_connectors_def_list, service_binding
         # There are no duplicate elements among the lists or within any of the lists
         return True
 '''
-
-def check_unique_dapr_bindings(cmd, service_connectors_def_list, service_bindings_def_list, resource_group_name, environment_name):
+def check_unique_dapr2_bindings(cmd, service_connectors_def_list, service_bindings_def_list, resource_group_name, environment_name):
     linker_client = get_linker_client(cmd)
     daprComponent_def = None
 
@@ -588,7 +587,7 @@ def check_unique_dapr_bindings(cmd, service_connectors_def_list, service_binding
     else:
         # There are no duplicate elements among the lists or within any of the lists
         return True
-
+'''
 def parse_service_bindings(cmd, service_bindings_list, resource_group_name, name):
     # Make it return both managed and dev bindings
     service_bindings_def_list = []

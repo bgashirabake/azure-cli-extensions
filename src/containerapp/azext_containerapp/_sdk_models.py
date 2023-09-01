@@ -3218,7 +3218,7 @@ class DaprComponent(ProxyResource):  # pylint: disable=too-many-instance-attribu
         "secret_store_component": {"key": "properties.secretStoreComponent", "type": "str"},
         "metadata": {"key": "properties.metadata", "type": "[DaprMetadata]"},
         "scopes": {"key": "properties.scopes", "type": "[str]"},
-        "service_binds": {"key": "serviceBinds", "type": "[ServiceBinding]"},
+        "service_binds": {"key": "properties.serviceComponentBind", "type": "[ServiceBinding]"},
     }
 
     def __init__(
@@ -3253,7 +3253,7 @@ class DaprComponent(ProxyResource):  # pylint: disable=too-many-instance-attribu
         :keyword scopes: Names of container apps that can use this Dapr component.
         :paramtype scopes: list[str]
         :param service_binds: List of service bindings for the Dapr Component.
-        :type service_binds: list[~azure.mgmt.appcontainers.models.ServiceBinding]
+        :type service_binds: list[~azure.mgmt.appcontainers.models.DaprComponentServiceBinding]
         """
         super().__init__(**kwargs)
         self.component_type = component_type
@@ -3321,6 +3321,44 @@ class DaprConfiguration(_serialization.Model):
         """ """
         super().__init__(**kwargs)
         self.version = None
+
+class DaprComponentServiceBinding(_serialization.Model):
+    """Dapr component service binding.
+
+    :ivar name: Name of the binding
+    :vartype name: str
+    :ivar serviceId: Id of service
+    :vartype serviceId: str
+    :ivar metadata: Metadata properties to describe service binding.
+    :vartype metadata: dict[str, str]
+    """
+
+    _attribute_map = {
+        "name": {"key": "name", "type": "str"},
+        "serviceId": {"key": "serviceId", "type": "str"},
+        "metadata": {"key": "metadata", "type": "{str}"},
+    }
+
+    def __init__(
+        self,
+        *,
+        name: Optional[str] = None,
+        serviceId: Optional[str] = None,
+        metadata: Optional[Dict[str, str]] = None,
+        **kwargs: Any
+    ) -> None:
+        """
+        :keyword name: Name of the binding
+        :paramtype name: str
+        :keyword serviceId: Id of service
+        :paramtype value: str
+        :metadata: Metadata properties to describe service binding.
+        :paramtype metadata: dict[str, str]
+        """
+        super().__init__(**kwargs)
+        self.name = name
+        self.serviceId = serviceId
+        self.metadata = metadata
 
 
 class DaprMetadata(_serialization.Model):

@@ -307,8 +307,14 @@ DaprComponent = {
         "secrets": None,
         "metadata": None,
         "scopes": None,
-        "serviceBinds": None # [ServiceBinding]
+        "serviceComponentBind": None # [DaprComponentServiceBinding]
     }
+}
+
+DaprComponentServiceBinding = {
+    "name": None,  # str
+    "serviceId": None,  # str
+    "metadata": {} # dict
 }
 
 DaprMetadata = {
