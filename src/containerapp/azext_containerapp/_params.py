@@ -328,6 +328,12 @@ def load_arguments(self, _):
         c.argument('dapr_app_protocol', help="Tell Dapr which protocol your application is using.  Allowed values: grpc, http.")
         c.argument('dapr_component_name', help="The Dapr component name.")
         c.argument('environment_name', options_list=['--name', '-n'], help="The environment name.")
+        
+    with self.argument_context('containerapp env dapr-component', arg_group='Service Binding') as c:
+        c.argument('service_bindings', nargs='*', options_list=['--connect'], help="Space separated list of services(bindings) to be connected to this component. e.g. SVC_NAME1[:BIND_NAME1] SVC_NAME2[:BIND_NAME2]...")
+        c.argument('unbind_service_bindings', nargs='*', options_list=['--disconnect'], help="Space separated list of services(bindings) to be disconnected to this component. e.g. SVC_NAME1[:BIND_NAME1] SVC_NAME2[:BIND_NAME2]...")
+        c.argument('service_type', help="The service information for dev services.")
+        c.ignore('service_type')
 
     with self.argument_context('containerapp revision set-mode') as c:
         c.argument('mode', arg_type=get_enum_type(['single', 'multiple']), help="The active revisions mode for the container app.")

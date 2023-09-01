@@ -531,6 +531,16 @@ helps['containerapp env dapr-component'] = """
     short-summary: Commands to manage Dapr components for the Container Apps environment.
 """
 
+helps['containerapp env dapr-component connect'] = """
+    type: command
+    short-summary: Commands to connect Dapr Component to a service.
+"""
+
+helps['containerapp env dapr-component disconnect'] = """
+    type: command
+    short-summary: Commands to disconnect Dapr Component to a service.
+"""
+
 helps['containerapp env dapr-component list'] = """
     type: command
     short-summary: List Dapr components for an environment.

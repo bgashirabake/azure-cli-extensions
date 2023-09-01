@@ -3194,6 +3194,8 @@ class DaprComponent(ProxyResource):  # pylint: disable=too-many-instance-attribu
     :vartype metadata: list[~azure.mgmt.appcontainers.models.DaprMetadata]
     :ivar scopes: Names of container apps that can use this Dapr component.
     :vartype scopes: list[str]
+    :ivar service_binds: List of service bindings for the Container App.
+    :vartype service_binds: list[~commondefinitions.models.ServiceBinding]
     """
 
     _validation = {
@@ -3216,6 +3218,7 @@ class DaprComponent(ProxyResource):  # pylint: disable=too-many-instance-attribu
         "secret_store_component": {"key": "properties.secretStoreComponent", "type": "str"},
         "metadata": {"key": "properties.metadata", "type": "[DaprMetadata]"},
         "scopes": {"key": "properties.scopes", "type": "[str]"},
+        "service_binds": {"key": "serviceBinds", "type": "[ServiceBinding]"},
     }
 
     def __init__(
@@ -3229,6 +3232,7 @@ class DaprComponent(ProxyResource):  # pylint: disable=too-many-instance-attribu
         secret_store_component: Optional[str] = None,
         metadata: Optional[List["_models.DaprMetadata"]] = None,
         scopes: Optional[List[str]] = None,
+        service_binds: Optional[List["_models.ServiceBinding"]] = None,
         **kwargs: Any
     ) -> None:
         """
@@ -3248,6 +3252,8 @@ class DaprComponent(ProxyResource):  # pylint: disable=too-many-instance-attribu
         :paramtype metadata: list[~azure.mgmt.appcontainers.models.DaprMetadata]
         :keyword scopes: Names of container apps that can use this Dapr component.
         :paramtype scopes: list[str]
+        :param service_binds: List of service bindings for the Dapr Component.
+        :type service_binds: list[~azure.mgmt.appcontainers.models.ServiceBinding]
         """
         super().__init__(**kwargs)
         self.component_type = component_type
@@ -3258,6 +3264,7 @@ class DaprComponent(ProxyResource):  # pylint: disable=too-many-instance-attribu
         self.secret_store_component = secret_store_component
         self.metadata = metadata
         self.scopes = scopes
+        self.service_binds = service_binds
 
 
 class DaprComponentsCollection(_serialization.Model):
