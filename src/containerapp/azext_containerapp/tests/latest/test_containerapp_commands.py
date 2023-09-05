@@ -710,7 +710,7 @@ class ContainerappDaprTests(ScenarioTest):
 
 class ContainerappServiceBindingTests(ScenarioTest):
     @AllowLargeResponse(8192)
-    @ResourceGroupPreparer(location="eastus2")
+    @ResourceGroupPreparer(location="francecentral")
     def test_containerapp_dev_service_binding_e2e(self, resource_group):
         self.cmd('configure --defaults location={}'.format(TEST_LOCATION))
 
@@ -723,7 +723,7 @@ class ContainerappServiceBindingTests(ScenarioTest):
         mariadb_ca_name = 'mariadb'
         qdrant_ca_name = "qdrant"
 
-        create_containerapp_env(self, env_name, resource_group)
+        create_containerapp_env(self, env_name, resource_group, location="francecentral")
 
         self.cmd('containerapp service redis create -g {} -n {} --environment {}'.format(
             resource_group, redis_ca_name, env_name))
@@ -778,152 +778,8 @@ class ContainerappServiceBindingTests(ScenarioTest):
         self.cmd('containerapp service list -g {} --environment {}'.format(resource_group, env_name), checks=[
             JMESPathCheck('length(@)', 0),
         ])
-    
-    @AllowLargeResponse(8192)
-    @ResourceGroupPreparer(location="eastus2euap")
-    def test_containerapp_qdrant_service_binding_e2e(self, resource_group):
-        self.cmd('configure --defaults location={}'.format(TEST_LOCATION))
-        qdrant_ca_name = "qdrant"
+         
 
-        env_name = self.create_random_name(prefix='containerapp-env', length=24)
-        ca_name = self.create_random_name(prefix='containerapp', length=24)
-        image = "mcr.microsoft.com/azuredocs/containerapps-helloworld:latest"
-        create_containerapp_env(self, env_name, resource_group)
-        self.cmd('containerapp service qdrant create -g {} -n {} --environment {}'.format(
-            resource_group, qdrant_ca_name, env_name))
-        self.cmd('containerapp create -g {} -n {} --environment {} --image {} --bind qdrant'.format(
-            resource_group, ca_name, env_name, image), checks=[
-            JMESPathCheck('properties.template.serviceBinds[0].name', "qdrant")
-        ])
-
-        self.cmd('containerapp update -g {} -n {} --bind qdrant:qdrantbinding'.format(
-            resource_group, ca_name, image), checks=[
-            JMESPathCheck('properties.template.serviceBinds[0].name', "qdrantbinding")
-        ])
-        self.cmd('containerapp service qdrant delete -g {} -n {} --yes'.format(
-            resource_group, qdrant_ca_name, env_name))
-        self.cmd('containerapp service list -g {} --environment {}'.format(resource_group, env_name), checks=[
-            JMESPathCheck('length(@)', 0),
-        ])
-    @AllowLargeResponse(8192)
-    @ResourceGroupPreparer(location="eastus2")
-    def test_containerapp_managed_service_binding_e2e(self, resource_group):
-        self.cmd('configure --defaults location={}'.format(TEST_LOCATION))
-        qdrant_ca_name = "qdrant"
-
-        env_name = self.create_random_name(prefix='containerapp-env', length=24)
-        ca_name = self.create_random_name(prefix='containerapp', length=24)
-        mysqlserver = "mysqlflexsb"
-        postgresqlserver = "postgresqlflexsb"
-        
-        mysqlflex_json= self.cmd('mysql flexible-server create --resource-group {} --name {} --public-access {} -y'.format(resource_group, mysqlserver, "None")).output
-        postgresqlflex_json= self.cmd('postgres flexible-server create --resource-group {} --name {} --public-access {} -y'.format(resource_group, postgresqlserver, "None")).output
-        mysqlflex_dict = json.loads(mysqlflex_json)
-
-        mysqlusername = mysqlflex_dict['username']
-        mysqlpassword = mysqlflex_dict['password']
-        
-        mysqldb = mysqlflex_dict['databaseName']
-        flex_binding="mysqlflex_binding"
-        postgresqlflex_dict = json.loads(postgresqlflex_json)
-        postgresqlusername = postgresqlflex_dict['username']
-        postgresqlpassword = postgresqlflex_dict['password']
-        postgresqldb = postgresqlflex_dict['databaseName']
-        create_containerapp_env(self, env_name, resource_group)
-
-        self.cmd('containerapp create -g {} -n {} --environment {} --bind {}:{},database={},username={},password={}'.format(
-            resource_group, ca_name, env_name, mysqlserver, flex_binding, mysqldb , mysqlusername, mysqlpassword))
-        self.cmd('containerapp show -g {} -n {}'.format(resource_group, ca_name), checks=[
-            JMESPathCheck('length(properties.template.containers[0].env[?name==`AZURE_MYSQL_HOST`])', 1)])
-        image = "mcr.microsoft.com/azuredocs/containerapps-helloworld:latest"
-        create_containerapp_env(self, env_name, resource_group)
-        self.cmd('containerapp service qdrant create -g {} -n {} --environment {}'.format(
-            resource_group, qdrant_ca_name, env_name))
-        self.cmd('containerapp create -g {} -n {} --environment {} --image {} --bind qdrant'.format(
-            resource_group, ca_name, env_name, image), checks=[
-            JMESPathCheck('properties.template.serviceBinds[0].name', "qdrant")
-        ])
-
-        self.cmd('containerapp update -g {} -n {} --bind {},database={},username={},password={}'.format(
-            resource_group, ca_name, postgresqlserver, postgresqldb , postgresqlusername, postgresqlpassword))
-        self.cmd('containerapp show -g {} -n {}'.format(resource_group, ca_name), checks=[
-            JMESPathCheck('length(properties.template.containers[0].env[?name==`AZURE_MYSQL_HOST`])', 1),
-            JMESPathCheck('length(properties.template.containers[0].env[?name==`AZURE_POSTGRESQL_HOST`])', 1)
-        ])
-        self.cmd('containerapp update -g {} -n {} --bind qdrant:qdrantbinding'.format(
-            resource_group, ca_name, image), checks=[
-            JMESPathCheck('properties.template.serviceBinds[0].name', "qdrantbinding")
-        ])
-        self.cmd('containerapp service qdrant delete -g {} -n {} --yes'.format(
-            resource_group, qdrant_ca_name, env_name))
-        self.cmd('containerapp service list -g {} --environment {}'.format(resource_group, env_name), checks=[
-            JMESPathCheck('length(@)', 0),
-        ])
-
-    @AllowLargeResponse(8192)
-    @ResourceGroupPreparer(location="eastus2")
-    def test_containerapp_managed_service_binding_e2e(self, resource_group):
-        self.cmd('configure --defaults location={}'.format(TEST_LOCATION))
-
-        env_name = self.create_random_name(prefix='containerapp-env', length=24)
-        ca_name = self.create_random_name(prefix='containerapp', length=24)
-        mysqlserver = "mysqlflexsb"
-        postgresqlserver = "postgresqlflexsb"
-        
-        mysqlflex_json= self.cmd('mysql flexible-server create --resource-group {} --name {} --public-access {} -y'.format(resource_group, mysqlserver, "None")).output
-        postgresqlflex_json= self.cmd('postgres flexible-server create --resource-group {} --name {} --public-access {} -y'.format(resource_group, postgresqlserver, "None")).output
-        mysqlflex_dict = json.loads(mysqlflex_json)
-
-        mysqlusername = mysqlflex_dict['username']
-        mysqlpassword = mysqlflex_dict['password']
-        
-        mysqldb = mysqlflex_dict['databaseName']
-        flex_binding="mysqlflex_binding"
-        postgresqlflex_dict = json.loads(postgresqlflex_json)
-        postgresqlusername = postgresqlflex_dict['username']
-        postgresqlpassword = postgresqlflex_dict['password']
-        postgresqldb = postgresqlflex_dict['databaseName']
-        create_containerapp_env(self, env_name, resource_group)
-
-        self.cmd('containerapp create -g {} -n {} --environment {} --bind {}:{},database={},username={},password={}'.format(
-            resource_group, ca_name, env_name, mysqlserver, flex_binding, mysqldb , mysqlusername, mysqlpassword))
-        self.cmd('containerapp show -g {} -n {}'.format(resource_group, ca_name), checks=[
-            JMESPathCheck('length(properties.template.containers[0].env[?name==`AZURE_MYSQL_HOST`])', 1)
-        ])
-
-        self.cmd('containerapp update -g {} -n {} --bind {},database={},username={},password={}'.format(
-            resource_group, ca_name, postgresqlserver, postgresqldb , postgresqlusername, postgresqlpassword))
-        self.cmd('containerapp show -g {} -n {}'.format(resource_group, ca_name), checks=[
-            JMESPathCheck('length(properties.template.containers[0].env[?name==`AZURE_MYSQL_HOST`])', 1),
-            JMESPathCheck('length(properties.template.containers[0].env[?name==`AZURE_POSTGRESQL_HOST`])', 1)
-        ])
-
-    
-    @AllowLargeResponse(8192)
-    @ResourceGroupPreparer(location="eastus2")
-    def test_containerapp_qdrant_service_binding_e2e(self, resource_group):
-        self.cmd('configure --defaults location={}'.format(TEST_LOCATION))
-        qdrant_ca_name = "qdrant"
-
-        env_name = self.create_random_name(prefix='containerapp-env', length=24)
-        ca_name = self.create_random_name(prefix='containerapp', length=24)
-        image = "mcr.microsoft.com/azuredocs/containerapps-helloworld:latest"
-        self.cmd('containerapp create -g {} -n {} --environment {} --image {} --bind qdrant'.format(
-            resource_group, ca_name, env_name, image), checks=[
-            JMESPathCheck('properties.template.serviceBinds[0].name', "qdrant")
-        ])
-
-        self.cmd('containerapp service qdrant create -g {} -n {} --environment {}'.format(
-            resource_group, qdrant_ca_name, env_name))
-        self.cmd('containerapp update -g {} -n {} --bind qdrant:qdrantbinding'.format(
-            resource_group, ca_name, image), checks=[
-            JMESPathCheck('properties.template.serviceBinds[0].name', "qdrantbinding")
-        ])
-        self.cmd('containerapp service qdrant delete -g {} -n {} --yes'.format(
-            resource_group, qdrant_ca_name, env_name))
-        self.cmd('containerapp service list -g {} --environment {}'.format(resource_group, env_name), checks=[
-            JMESPathCheck('length(@)', 0),
-        ])
     @AllowLargeResponse(8192)
     @ResourceGroupPreparer(location="eastus2")
     def test_containerapp_managed_service_binding_e2e(self, resource_group):
