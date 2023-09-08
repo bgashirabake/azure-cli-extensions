@@ -515,20 +515,20 @@ def check_unique_bindings(cmd, service_connectors_def_list, service_bindings_def
         # There are no duplicate elements among the lists or within any of the lists
         return True
 
-def check_unique_dapr_bindings(cmd, service_connectors_def_list, service_bindings_def_list, resource_group_name, name):
+def check_unique_dapr_component_bindings(cmd, service_connectors_def_list, service_bindings_def_list, resource_group_name, environment_name):
     linker_client = get_linker_client(cmd)
     daprComponent_def = None
 
 
     try:
-        daprComponent_def = DaprComponentClient.show(cmd=cmd, resource_group_name=resource_group_name, name=name)
+        daprComponent_def = DaprComponentClient.show(cmd=cmd, resource_group_name=resource_group_name, environment_name=environment_name)
     except:  # pylint: disable=bare-except
         pass
     all_bindings = []
 
     if daprComponent_def:
         managed_bindings = linker_client.linker.list(resource_uri=daprComponent_def["id"])
-        service_binds = daprComponent_def["properties"].get("serviceBinds", [])
+        service_binds = daprComponent_def["properties"].get("serviceComponendBind", [])
 
         if managed_bindings:
             all_bindings.extend([item.name for item in managed_bindings])

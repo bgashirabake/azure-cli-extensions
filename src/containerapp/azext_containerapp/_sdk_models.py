@@ -3194,8 +3194,8 @@ class DaprComponent(ProxyResource):  # pylint: disable=too-many-instance-attribu
     :vartype metadata: list[~azure.mgmt.appcontainers.models.DaprMetadata]
     :ivar scopes: Names of container apps that can use this Dapr component.
     :vartype scopes: list[str]
-    :ivar service_binds: List of service bindings for the Container App.
-    :vartype service_binds: list[~commondefinitions.models.ServiceBinding]
+    :ivar service_binds: List of service bindings for the Dapr Component
+    :vartype service_binds: list[~commondefinitions.models.DaprComponentServiceBinding]
     """
 
     _validation = {
@@ -3218,7 +3218,7 @@ class DaprComponent(ProxyResource):  # pylint: disable=too-many-instance-attribu
         "secret_store_component": {"key": "properties.secretStoreComponent", "type": "str"},
         "metadata": {"key": "properties.metadata", "type": "[DaprMetadata]"},
         "scopes": {"key": "properties.scopes", "type": "[str]"},
-        "service_binds": {"key": "properties.serviceComponentBind", "type": "[ServiceBinding]"},
+        "service_binds": {"key": "properties.serviceComponentBind", "type": "[DaprComponentServiceBinding]"},
     }
 
     def __init__(
@@ -3232,7 +3232,7 @@ class DaprComponent(ProxyResource):  # pylint: disable=too-many-instance-attribu
         secret_store_component: Optional[str] = None,
         metadata: Optional[List["_models.DaprMetadata"]] = None,
         scopes: Optional[List[str]] = None,
-        service_binds: Optional[List["_models.ServiceBinding"]] = None,
+        service_binds: Optional[List["_models.DaprComponentServiceBinding"]] = None,
         **kwargs: Any
     ) -> None:
         """
