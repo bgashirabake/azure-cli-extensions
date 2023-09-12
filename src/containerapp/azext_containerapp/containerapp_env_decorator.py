@@ -29,127 +29,12 @@ from .base_resource import BaseResource
 from ._models import (
     ManagedEnvironment as ManagedEnvironmentModel,
     VnetConfiguration as VnetConfigurationModel,
+    DaprComponent as DaprComponentModel,
     AppLogsConfiguration as AppLogsConfigurationModel,
     LogAnalyticsConfiguration as LogAnalyticsConfigurationModel,
     CustomDomainConfiguration as CustomDomainConfigurationModel)
 
 logger = get_logger(__name__)
-
-class DaprComponentConnectDecorator(BaseResource):
-    def __init__(self, cmd: AzCliCommand, client: Any, raw_parameters: Dict, models: str):
-        super().__init__(cmd, client, raw_parameters, models)
-
-    def get_argument_service_type(self):
-        return self.get_param("service_type")
-
-    def get_argument_service_bindings(self):
-        return self.get_param("service_bindings")
-
-    def get_argument_unbind_service_bindings(self):
-        return self.get_param("unbind_service_bindings")
-    
-    def set_argument_service_connectors_def_list(self, service_connectors_def_list):
-        self.set_param("service_connectors_def_list", service_connectors_def_list)
-
-    def get_argument_service_connectors_def_list(self):
-        return self.get_param("service_connectors_def_list")
-
-    def set_up_service_binds(self):
-        if self.get_argument_service_bindings() is not None:
-            service_connectors_def_list, service_bindings_def_list = parse_service_bindings(self.cmd,
-                                                                                            self.get_argument_service_bindings(),
-                                                                                            self.get_argument_resource_group_name(),
-                                                                                            self.get_argument_name())
-            self.set_argument_service_connectors_def_list(service_connectors_def_list)
-            unique_bindings = check_unique_bindings(self.cmd, service_connectors_def_list, service_bindings_def_list,
-                                                    self.get_argument_resource_group_name(), self.get_argument_name())
-            if not unique_bindings:
-                raise ValidationError("Binding names across managed and dev services should be unique.")
-            safe_set(self.containerapp_def, "properties", "template", "serviceBinds", value=service_bindings_def_list)
-
-
-    def post_process(self, r):
-        # Delete managed bindings
-        linker_client = None
-        if self.get_argument_unbind_service_bindings():
-            linker_client = get_linker_client(self.cmd)
-            for item in self.get_argument_unbind_service_bindings():
-                while r["properties"]["provisioningState"].lower() == "inprogress":
-                    r = self.client.show(self.cmd, self.get_argument_resource_group_name(), self.get_argument_name())
-                    time.sleep(1)
-                linker_client.linker.begin_delete(resource_uri=r["id"], linker_name=item).result()
-
-        # Update managed bindings
-        if self.get_argument_service_connectors_def_list() is not None:
-            linker_client = get_linker_client(self.cmd) if linker_client is None else linker_client
-            for item in self.get_argument_service_connectors_def_list():
-                while r["properties"]["provisioningState"].lower() == "inprogress":
-                    r = self.client.show(self.cmd, self.get_argument_resource_group_name(), self.get_argument_name())
-                    time.sleep(1)
-                linker_client.linker.begin_create_or_update(resource_uri=r["id"],
-                                                            parameters=item["parameters"],
-                                                            linker_name=item["linker_name"]).result()
-        return r
-
-    def set_up_service_bindings(self):
-        if self.get_argument_service_bindings() is not None:
-            linker_client = get_linker_client(self.cmd)
-
-            service_connectors_def_list, service_bindings_def_list = parse_service_bindings(self.cmd, self.get_argument_service_bindings(), self.get_argument_resource_group_name(), self.get_argument_name())
-            self.set_argument_service_connectors_def_list(service_connectors_def_list)
-            service_bindings_used_map = {update_item["name"]: False for update_item in service_bindings_def_list}
-
-            safe_set(self.new_containerapp, "properties", "template", "serviceBinds", value=self.containerapp_def["properties"]["template"]["serviceBinds"])
-
-            if self.new_containerapp["properties"]["template"]["serviceBinds"] is None:
-                self.new_containerapp["properties"]["template"]["serviceBinds"] = []
-
-            for item in self.new_containerapp["properties"]["template"]["serviceBinds"]:
-                for update_item in service_bindings_def_list:
-                    if update_item["name"] in item.values():
-                        item["serviceId"] = update_item["serviceId"]
-                        service_bindings_used_map[update_item["name"]] = True
-
-            for update_item in service_bindings_def_list:
-                if service_bindings_used_map[update_item["name"]] is False:
-                    # Check if it doesn't exist in existing service linkers
-                    managed_bindings = linker_client.linker.list(resource_uri=self.containerapp_def["id"])
-                    if managed_bindings:
-                        managed_bindings_list = [item.name for item in managed_bindings]
-                        if update_item["name"] in managed_bindings_list:
-                            raise ValidationError("Binding names across managed and dev services should be unique.")
-
-                    self.new_containerapp["properties"]["template"]["serviceBinds"].append(update_item)
-
-            if service_connectors_def_list is not None:
-                for item in service_connectors_def_list:
-                    # Check if it doesn't exist in existing service bindings
-                    service_bindings_list = []
-                    for binds in self.new_containerapp["properties"]["template"]["serviceBinds"]:
-                        service_bindings_list.append(binds["name"])
-                        if item["linker_name"] in service_bindings_list:
-                            raise ValidationError("Binding names across managed and dev services should be unique.")
-
-    def set_up_unbind_service_bindings(self):
-        if self.get_argument_unbind_service_bindings():
-            new_template = self.new_containerapp.setdefault("properties", {}).setdefault("template", {})
-            existing_template = self.containerapp_def["properties"]["template"]
-
-            if not self.get_argument_service_bindings():
-                new_template["serviceBinds"] = existing_template.get("serviceBinds", [])
-
-            service_bindings_dict = {}
-            if new_template["serviceBinds"]:
-                service_bindings_dict = {service_binding["name"]: index for index, service_binding in
-                                         enumerate(new_template.get("serviceBinds", []))}
-
-            for item in self.get_argument_unbind_service_bindings():
-                if item in service_bindings_dict:
-                    new_template["serviceBinds"] = [binding for binding in new_template["serviceBinds"] if
-                                                    binding["name"] != item]
-
-
-
 
 
 class ContainerAppEnvDecorator(BaseResource):
@@ -471,5 +356,125 @@ class ContainerappEnvPreviewCreateDecorator(ContainerAppEnvCreateDecorator):
 
     def get_argument_enable_workload_profiles(self):
         return self.get_param("enable_workload_profiles")
+'''    
+class DaprComponentConnectServiceDecorator(BaseResource):
+    def __init__(self, cmd: AzCliCommand, client: Any, raw_parameters: Dict, models: str):
+        super().__init__(cmd, client, raw_parameters, models)
+
+    def get_param(self, key) -> Any:
+        return self.raw_param.get(key)
+
+    def set_param(self, key, value):
+        self.raw_param[key] = value
+
+    def get_argument_managed_env(self):
+        return self.get_param("managed_env")
+
+    def set_argument_managed_env(self, managed_env):
+        self.set_param("managed_env", managed_env)
+
+    def get_argument_service_type(self):
+        return self.get_param("service_type")
     
+    def get_argument_name(self):
+        return self.get_param("name")
+
+    def get_argument_resource_group_name(self):
+        return self.get_param("resource_group_name")
+
+    def get_argument_service_bindings(self):
+        return self.get_param("service_bindings")
+
+    def get_argument_unbind_service_bindings(self):
+        return self.get_param("unbind_service_bindings")
+    
+    def set_argument_service_connectors_def_list(self, service_connectors_def_list):
+        self.set_param("service_connectors_def_list", service_connectors_def_list)
+
+    def get_argument_service_connectors_def_list(self):
+        return self.get_param("service_connectors_def_list")
+
+
+    def post_process(self, r):
+        # Delete managed bindings
+        linker_client = None
+        if self.get_argument_unbind_service_bindings():
+            linker_client = get_linker_client(self.cmd)
+            for item in self.get_argument_unbind_service_bindings():
+                while r["properties"]["provisioningState"].lower() == "inprogress":
+                    r = self.client.show(self.cmd, self.get_argument_resource_group_name(), self.get_argument_name())
+                    time.sleep(1)
+                linker_client.linker.begin_delete(resource_uri=r["id"], linker_name=item).result()
+
+        # Update managed bindings
+        if self.get_argument_service_connectors_def_list() is not None:
+            linker_client = get_linker_client(self.cmd) if linker_client is None else linker_client
+            for item in self.get_argument_service_connectors_def_list():
+                while r["properties"]["provisioningState"].lower() == "inprogress":
+                    r = self.client.show(self.cmd, self.get_argument_resource_group_name(), self.get_argument_name())
+                    time.sleep(1)
+                linker_client.linker.begin_create_or_update(resource_uri=r["id"],
+                                                            parameters=item["parameters"],
+                                                            linker_name=item["linker_name"]).result()
+        return r
+
+    def set_up_service_bindings(self):
+        if self.get_argument_service_bindings() is not None:
+            linker_client = get_linker_client(self.cmd)
+
+            service_connectors_def_list, service_bindings_def_list = parse_service_bindings(self.cmd, self.get_argument_service_bindings(), self.get_argument_resource_group_name(), self.get_argument_name())
+            self.set_argument_service_connectors_def_list(service_connectors_def_list)
+            service_bindings_used_map = {update_item["name"]: False for update_item in service_bindings_def_list}
+
+            safe_set(self.new_dapr_component, "properties", "serviceComponentBind", value=self.daprcomponent_def["properties"]["serviceComponentBind"])
+
+            if self.new_dapr_component["properties"]["serviceComponentBind"] is None:
+                self.new_dapr_component["properties"]["serviceComponentBind"] = []
+
+            for item in self.new_dapr_component["properties"]["serviceComponentBind"]:
+                for update_item in service_bindings_def_list:
+                    if update_item["name"] in item.values():
+                        item["serviceId"] = update_item["serviceId"]
+                        service_bindings_used_map[update_item["name"]] = True
+
+            for update_item in service_bindings_def_list:
+                if service_bindings_used_map[update_item["name"]] is False:
+                    # Check if it doesn't exist in existing service linkers
+                    managed_bindings = linker_client.linker.list(resource_uri=self.daprcomponent_def["id"])
+                    if managed_bindings:
+                        managed_bindings_list = [item.name for item in managed_bindings]
+                        if update_item["name"] in managed_bindings_list:
+                            raise ValidationError("Binding names across managed and dev services should be unique.")
+
+                    self.new_dapr_component["properties"]["serviceComponentBind"].append(update_item)
+
+            if service_connectors_def_list is not None:
+                for item in service_connectors_def_list:
+                    # Check if it doesn't exist in existing service bindings
+                    service_bindings_list = []
+                    for binds in self.new_dapr_component["properties"]["serviceComponentBind"]:
+                        service_bindings_list.append(binds["name"])
+                        if item["linker_name"] in service_bindings_list:
+                            raise ValidationError("Binding names across managed and dev services should be unique.")
+
+    def set_up_unbind_service_bindings(self):
+        if self.get_argument_unbind_service_bindings():
+            new_template = self.new_dapr_component.setdefault("properties", {})
+            existing_template = self.daprcomponent_def["properties"]
+
+            if not self.get_argument_service_bindings():
+                new_template["serviceComponentBind"] = existing_template.get("serviceComponentBind", [])
+
+            service_bindings_dict = {}
+            if new_template["serviceComponentBind"]:
+                service_bindings_dict = {service_binding["name"]: index for index, service_binding in
+                                         enumerate(new_template.get("serviceComponentBind", []))}
+
+            for item in self.get_argument_unbind_service_bindings():
+                if item in service_bindings_dict:
+                    new_template["serviceComponentBind"] = [binding for binding in new_template["serviceComponentBind"] if
+                                                    binding["name"] != item]'''
+
+
+
 

@@ -43,6 +43,7 @@ from ._clients import (
     ContainerAppClient,
     GitHubActionClient,
     DaprComponentClient,
+    DaprComponentPreviewClient,
     StorageClient,
     AuthClient,
     WorkloadProfileClient,
@@ -60,6 +61,8 @@ from ._models import (
     VnetConfiguration as VnetConfigurationModel,
     AppLogsConfiguration as AppLogsConfigurationModel,
     LogAnalyticsConfiguration as LogAnalyticsConfigurationModel,
+    DaprComponent as DaprComponentModel,
+    DaprComponentServiceBinding as DaprComponentServiceBindingModel,
     Ingress as IngressModel,
     Configuration as ConfigurationModel,
     JobConfiguration as JobConfigurationModel,
@@ -3317,6 +3320,147 @@ def create_or_update_dapr_component(cmd, resource_group_name, environment_name, 
     except Exception as e:
         handle_raw_exception(e)
 
+'''def validate_dapr_component_name(cmd, resource_group_name, environment_name, dapr_component_name):
+    _validate_subscription_registered(cmd, CONTAINER_APPS_RP)
+
+    try:
+        DaprComponentClient.show(cmd, resource_group_name, environment_name, name=dapr_component_name)
+    except Exception as e:
+        raise ResourceNotFoundError("Dapr component not found.") from e'''
+
+def update_dapr_component_with_service_connect(cmd, resource_group_name, environment_name, dapr_component_name,
+                                                service_bindings=None,
+                                                service_type=None,
+                                                unbind_service_bindings=None,):
+    _validate_subscription_registered(cmd, CONTAINER_APPS_RP)
+    
+
+
+    try:
+        dapr_component_def = DaprComponentPreviewClient.show(cmd, resource_group_name, environment_name, name=dapr_component_name)
+    except Exception as e:
+        raise ResourceNotFoundError("Dapr component not found.") from e
+    service_def = None
+    if service_type:
+        service_def = ServiceModel
+        service_def["type"] = service_type
+    # services update
+    if dapr_component_def["properties"]["serviceComponentBind"]:
+        linker_client = get_linker_client(cmd)
+        service_connectors_def_list = []
+        new_dapr_component_def = {}
+
+        if service_bindings is not None:
+            service_connectors_def_list, service_bindings_def_list = parse_service_bindings(
+                cmd, service_bindings, resource_group_name, dapr_component_name)
+
+            service_bindings_used_map = {update_item["name"]: False for update_item in service_bindings_def_list}
+
+            safe_set(new_dapr_component_def, "properties", "serviceComponentBind", value=dapr_component_def["properties"]["serviceComponentBind"])
+
+            if new_dapr_component_def["properties"]["serviceComponentBind"] is None:
+                new_dapr_component_def["properties"]["serviceComponentBind"] = []
+
+            for item in new_dapr_component_def["properties"]["serviceComponentBind"]:
+                for update_item in service_bindings_def_list:
+                    if update_item["name"] in item.values():
+                        item["serviceId"] = update_item["serviceId"]
+                        service_bindings_used_map[update_item["name"]] = True
+
+            for update_item in service_bindings_def_list:
+                if service_bindings_used_map[update_item["name"]] is False:
+                    # Check if it doesn't exist in existing service linkers
+                    managed_bindings = linker_client.linker.list(resource_uri=dapr_component_def["id"])
+                    if managed_bindings:
+                        managed_bindings_list = [item.name for item in managed_bindings]
+                        if update_item["name"] in managed_bindings_list:
+                            raise ValidationError("Binding names across managed and dev services should be unique.")
+
+                    new_dapr_component_def["properties"]["serviceComponentBind"].append(update_item)
+
+            if service_connectors_def_list is not None:
+                for item in service_connectors_def_list:
+                    # Check if it doesn't exist in existing service bindings
+                    service_bindings_list = []
+                    for binds in new_dapr_component_def["properties"]["serviceComponentBind"]:
+                        service_bindings_list.append(binds["name"])
+                        if item["linker_name"] in service_bindings_list:
+                            raise ValidationError("Binding names across managed and dev services should be unique.")
+
+
+        if unbind_service_bindings:
+            new_template = new_dapr_component_def.setdefault("properties", {})
+            existing_template = dapr_component_def["properties"]
+
+            if not service_bindings:
+                new_template["serviceBinds"] = existing_template.get("serviceBinds", [])
+
+            service_bindings_dict = {}
+            if new_template["serviceComponentBind"]:
+                service_bindings_dict = {service_binding["name"]: index for index, service_binding in
+                                        enumerate(new_template.get("serviceComponentBind", []))}
+
+            for item in unbind_service_bindings:
+                if item in service_bindings_dict:
+                    new_template["serviceComponentBind"] = [binding for binding in new_template["serviceComponentBind"] if
+                                                    binding["name"] != item]
+        try:
+            r = DaprComponentPreviewClient.create_or_update(cmd, resource_group_name=resource_group_name, environment_name=environment_name, dapr_component_envelope=new_dapr_component_def, name=dapr_component_name)
+
+            # delete managed bindings
+            if unbind_service_bindings:
+                for item in unbind_service_bindings:
+                    while not r["properties"]:
+                        r = DaprComponentPreviewClient.show(cmd, resource_group_name, environment_name, dapr_component_name)
+                        time.sleep(1)
+                    linker_client.linker.begin_delete(resource_uri=r["id"], linker_name=item).result()
+
+            # Update managed bindings
+            if service_connectors_def_list is not None:
+                for item in service_connectors_def_list:
+                    while not r["properties"]:
+                        r = DaprComponentPreviewClient.show(cmd, resource_group_name, environment_name, dapr_component_name)
+                        time.sleep(1)
+                    linker_client.linker.begin_create_or_update(resource_uri=r["id"],
+                                                                parameters=item["parameters"],
+                                                                linker_name=item["linker_name"]).result()
+            return r
+        except Exception as e:
+            handle_raw_exception(e)
+
+    # no pre-existing services
+    if not dapr_component_def["properties"]["serviceComponentBind"]:
+
+        daprComponent_def = DaprComponentModel
+        daprCompoenntServiceBinding_def = DaprComponentServiceBindingModel
+        service_bindings_def_list = None
+        service_connectors_def_list = None
+
+        if service_bindings is not None:
+            service_connectors_def_list, service_bindings_def_list = parse_service_bindings(cmd, service_bindings,
+                                                                                            resource_group_name, dapr_component_name)
+            unique_bindings = check_unique_bindings(cmd, service_connectors_def_list, service_bindings_def_list,
+                                                    resource_group_name, dapr_component_name)
+            if not unique_bindings:
+                raise ValidationError("Binding names across managed and dev services should be unique.")
+        daprComponent_def["properties"] = dapr_component_def["properties"]
+        daprComponent_def["properties"]["serviceComponentBind"] = service_bindings_def_list
+        try:
+            r = DaprComponentPreviewClient.create_or_update(cmd, resource_group_name=resource_group_name, environment_name=environment_name, dapr_component_envelope=daprComponent_def, name=dapr_component_name)
+            if service_connectors_def_list is not None:
+                linker_client = get_linker_client(cmd)
+
+                for item in service_connectors_def_list:
+                    while r["properties"]["provisioningState"].lower() == "inprogress":
+                        r = DaprComponentPreviewClient.show(cmd, resource_group_name, environment_name,name=dapr_component_name)
+                        time.sleep(1)
+                    linker_client.linker.begin_create_or_update(resource_uri=r["id"],
+                                                                parameters=item["parameters"],
+                                                                linker_name=item["linker_name"]).result()
+
+            return r
+        except Exception as e:
+            handle_raw_exception(e)
 
 def remove_dapr_component(cmd, resource_group_name, dapr_component_name, environment_name):
     _validate_subscription_registered(cmd, CONTAINER_APPS_RP)

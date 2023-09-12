@@ -515,13 +515,13 @@ def check_unique_bindings(cmd, service_connectors_def_list, service_bindings_def
         # There are no duplicate elements among the lists or within any of the lists
         return True
 
-def check_unique_dapr_component_bindings(cmd, service_connectors_def_list, service_bindings_def_list, resource_group_name, environment_name):
+def check_unique_dapr_component_bindings(cmd, service_connectors_def_list, service_bindings_def_list, resource_group_name, environment_name, name):
     linker_client = get_linker_client(cmd)
     daprComponent_def = None
 
 
     try:
-        daprComponent_def = DaprComponentClient.show(cmd=cmd, resource_group_name=resource_group_name, environment_name=environment_name)
+        daprComponent_def = DaprComponentClient.show(cmd=cmd, resource_group_name=resource_group_name, environment_name=environment_name, name=name)
     except:  # pylint: disable=bare-except
         pass
     all_bindings = []
@@ -553,41 +553,6 @@ def check_unique_dapr_component_bindings(cmd, service_connectors_def_list, servi
     else:
         # There are no duplicate elements among the lists or within any of the lists
         return True
-'''
-def check_unique_dapr2_bindings(cmd, service_connectors_def_list, service_bindings_def_list, resource_group_name, environment_name):
-    linker_client = get_linker_client(cmd)
-    daprComponent_def = None
-
-
-    try:
-        daprComponent_def = DaprComponentClient.show(cmd=cmd, resource_group_name=resource_group_name, environment_name=environment_name)
-    except:  # pylint: disable=bare-except
-        pass
-    all_bindings = []
-
-    if daprComponent_def:
-        managed_bindings = linker_client.linker.list(resource_uri=daprComponent_def["id"])
-
-        if managed_bindings:
-            all_bindings.extend([item.name for item in managed_bindings])
-
-    #service_binding_names = [service_bind["name"] for service_bind in service_bindings_def_list]
-    linker_names = [connector["linker_name"] for connector in service_connectors_def_list]
-
-    all_bindings_set = set(all_bindings)
-    #service_binding_names_set = set(service_binding_names)
-    linker_names_set = set(linker_names)
-
-    if len(all_bindings_set | linker_names_set) != len(all_bindings_set) + len(linker_names_set):
-        # There are duplicate elements across the lists
-        return False
-    elif len(all_bindings_set)  + len(linker_names_set) != len(all_bindings) + len(linker_names):
-        # There are duplicate elements within one or more of the lists
-        return False
-    else:
-        # There are no duplicate elements among the lists or within any of the lists
-        return True
-'''
 def parse_service_bindings(cmd, service_bindings_list, resource_group_name, name):
     # Make it return both managed and dev bindings
     service_bindings_def_list = []
