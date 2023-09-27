@@ -788,6 +788,35 @@ class ContainerappServiceBindingTests(ScenarioTest):
         self.cmd(f'containerapp env delete -g {resource_group} -n {env_name} --yes')
 
     @AllowLargeResponse(8192)
+    @ResourceGroupPreparer(location="francecentral")
+    def test_containerapp_milvus_service_binding_e2e(self, resource_group):
+        self.cmd('configure --defaults location={}'.format(TEST_LOCATION))
+        milvus_ca_name = "milvus"
+
+
+        env_name = self.create_random_name(prefix='containerapp-env', length=24)
+        ca_name = self.create_random_name(prefix='containerapp', length=24)
+        image = "mcr.microsoft.com/azuredocs/containerapps-helloworld:latest"
+        create_containerapp_env(self, env_name, resource_group, location="francecentral")
+        self.cmd('containerapp service milvus create -g {} -n {} --environment {}'.format(
+            resource_group, milvus_ca_name, env_name))
+        self.cmd('containerapp create -g {} -n {} --environment {} --image {} --bind milvus'.format(
+            resource_group, ca_name, env_name, image), checks=[
+            JMESPathCheck('properties.template.serviceBinds[0].name', "milvus")
+        ])
+
+        self.cmd('containerapp update -g {} -n {} --bind milvus:milvusbinding'.format(
+            resource_group, ca_name, image), checks=[
+            JMESPathCheck('properties.template.serviceBinds[0].name', "milvusbinding")
+        ])
+        self.cmd('containerapp service milvus delete -g {} -n {} --yes'.format(
+            resource_group, milvus_ca_name, env_name))
+        self.cmd('containerapp service list -g {} --environment {}'.format(resource_group, env_name), checks=[
+            JMESPathCheck('length(@)', 0),
+        ])
+
+
+    @AllowLargeResponse(8192)
     @ResourceGroupPreparer(location="eastus2")
     def test_containerapp_managed_service_binding_e2e(self, resource_group):
         self.cmd('configure --defaults location={}'.format(TEST_LOCATION))
