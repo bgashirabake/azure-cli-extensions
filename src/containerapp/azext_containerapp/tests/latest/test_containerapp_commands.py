@@ -797,7 +797,7 @@ class ContainerappServiceBindingTests(ScenarioTest):
         env_name = self.create_random_name(prefix='containerapp-env', length=24)
         ca_name = self.create_random_name(prefix='containerapp', length=24)
         image = "mcr.microsoft.com/azuredocs/containerapps-helloworld:latest"
-        create_containerapp_env(self, env_name, resource_group, location="francecentral")
+        create_containerapp_env(self, env_name, resource_group, location="northcentralusstage")
         self.cmd('containerapp service milvus create -g {} -n {} --environment {}'.format(
             resource_group, milvus_ca_name, env_name))
         self.cmd('containerapp create -g {} -n {} --environment {} --image {} --bind milvus'.format(
