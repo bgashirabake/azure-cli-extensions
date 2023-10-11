@@ -56,7 +56,7 @@ from ._constants import (MAXIMUM_CONTAINER_APP_NAME_LENGTH, SHORT_POLLING_INTERV
 from ._models import (ContainerAppCustomDomainEnvelope as ContainerAppCustomDomainEnvelopeModel,
                       ManagedCertificateEnvelop as ManagedCertificateEnvelopModel)
 from ._models import OryxMarinerRunImgTagProperty
-from ._managed_service_utils import ManagedRedisUtils, ManagedCosmosDBUtils, ManagedPostgreSQLFlexibleUtils, ManagedMySQLFlexibleUtils
+from ._managed_service_utils import ManagedRedisUtils, ManagedCosmosDBUtils, ManagedPostgreSQLFlexibleUtils, ManagedMySQLFlexibleUtils, ManagedKafkaUtils
 
 
 class AppType(Enum):
@@ -453,6 +453,11 @@ def process_service(cmd, resource_list, service_name, arg_dict, subscription_id,
                     ManagedMySQLFlexibleUtils.build_mysql_service_connector_def(subscription_id, resource_group_name,
                                                                                 service_name, arg_dict,
                                                                                 name, binding_name))
+            elif service["type"] == "Kafka on Confluent":
+                service_connector_def_list.append(
+                    ManagedKafkaUtils.build_kafka_service_connector_def(arg_dict,
+                                                                        name, binding_name))
+
             elif service["type"] == "Microsoft.App/containerApps":
                 containerapp_def = ContainerAppClient.show(cmd=cmd, resource_group_name=resource_group_name,
                                                            name=service_name)
@@ -520,7 +525,6 @@ def check_unique_bindings(cmd, service_connectors_def_list, service_bindings_def
         # There are no duplicate elements among the lists or within any of the lists
         return True
 
-
 def parse_service_bindings(cmd, service_bindings_list, resource_group_name, name):
     # Make it return both managed and dev bindings
     service_bindings_def_list = []
@@ -540,12 +544,17 @@ def parse_service_bindings(cmd, service_bindings_list, resource_group_name, name
                 arg_dict[key_value[0]] = key_value[1]
 
         service_binding = parts[0].split(':')
-        service_name = service_binding[0]
+        service_name = service_binding[0]  
+
 
         if len(service_binding) == 1:
             binding_name = service_name
         else:
             binding_name = service_binding[1]
+        is_kafka = True if service_name == "kafkaconfluent" else False
+        binding_name = "bootstrap_server.schema_registry" if is_kafka else binding_name  
+
+
 
         if not validate_binding_name(binding_name):
             raise InvalidArgumentValueError("The Binding Name can only contain letters, numbers (0-9), periods ('.'), "
@@ -570,6 +579,8 @@ def parse_service_bindings(cmd, service_bindings_list, resource_group_name, name
         resource_list = []
         for item in resources:
             resource_list.append({"name": item.name, "type": item.type, "id": item.id})
+        if is_kafka:
+            resource_list.append({"name": "kafkaconfluent", "type": "Kafka on Confluent", "id": ""})
 
         subscription_id = get_subscription_id(cmd.cli_ctx)
 
