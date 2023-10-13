@@ -1339,7 +1339,7 @@ class ContainerAppPreviewCreateDecorator(ContainerAppCreateDecorator):
                                                                 linker_name=linker_name).result()  
   
                 if len(item["parameters"]) == 1:   
-                    create_or_update(item["parameters"], item["linker_name"])  
+                    create_or_update(item["parameters"][0], item["linker_name"])  
                 else:      
                     parameters_bootstrap_server, parameters_schema_registry = item["linker_name"].split('.', 1)  
                     create_or_update(item["parameters"][0], parameters_bootstrap_server)  
@@ -1539,7 +1539,7 @@ class ContainerAppPreviewUpdateDecorator(ContainerAppUpdateDecorator):
                                                                 linker_name=linker_name).result()  
   
                 if len(item["parameters"]) == 1:   
-                    create_or_update(item["parameters"], item["linker_name"])  
+                    create_or_update(item["parameters"][0], item["linker_name"])  
                 else:      
                     parameters_bootstrap_server, parameters_schema_registry = item["linker_name"].split('.', 1)  
                     create_or_update(item["parameters"][0], parameters_bootstrap_server)  
