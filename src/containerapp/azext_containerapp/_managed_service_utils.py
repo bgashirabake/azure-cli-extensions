@@ -243,13 +243,14 @@ class ManagedKafkaUtils:
         has_registry_params = all(key in arg_dict for key in ["schema_registry", "schema_secret", "schema_secret"])  
     
         if not has_server_params:
-            logger.info("With no space in-between, Managed Kafka bootstrap server arguments are in the form: bootstrap_server=https://pkc-xxxx.eastus.azure.confluent.cloud:9092,kafka_key=xxxxx,kafka_secret=xxxxx")
+            logger.warning("With no space in-between, Managed Kafka bootstrap server arguments are in the form: bootstrap_server=pkc-xxxx.eastus.azure.confluent.cloud:9092,kafka_key=xxxxx,kafka_secret=xxxxx." 
+                           " For a REST Endpoint, the first argument takes the form: bootstrap_server=https://pkc-xxxx.eastus.azure.confluent.cloud:443")
             raise ValidationError(  
                 "Managed Kafka needs the bootstrap_server, kafka_key, and kafka_secret arguments. All must be set.")
             
               
         if partial_registry_params and not has_registry_params:
-            logger.info("With no space in-between, Managed Kafka schema registry arguments are in the form: schema_registry=https://psrc-xxxx.westus2.azure.confluent.cloud,schema_key=xxxxx,schema_secret=xxxxx")    
+            logger.warning("With no space in-between, Managed Kafka schema registry arguments are in the form: schema_registry=https://psrc-xxxx.westus2.azure.confluent.cloud,schema_key=xxxxx,schema_secret=xxxxx")    
             raise ValidationError(    
                 "Managed Kafka needs the schema_registry, schema_key, and schema_secret arguments. All must be set.")  
         

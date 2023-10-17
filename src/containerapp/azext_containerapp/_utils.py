@@ -557,7 +557,7 @@ def parse_service_bindings(cmd, service_bindings_list, resource_group_name, name
                 binding_prefix = service_binding[1]
                 if '.' in service_binding[1]:
                     logger.warning("The Binding Name for the Kafka on Confluent Cloud add-on can not contain periods '.'. Generating trimmed"  
-                                   " binding name")
+                                   " binding name ...")
                     binding_prefix = service_binding[1].replace('.', '')
                 binding_name = f"{binding_prefix}{bootstrap_server_binding}{binding_prefix}{registry_server_binding}"  
         else:  
