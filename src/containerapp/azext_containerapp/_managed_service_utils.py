@@ -4,7 +4,7 @@
 # --------------------------------------------------------------------------------------------
 
 from azure.cli.core.azclierror import (ValidationError, InvalidArgumentValueError)
-
+from knack.log import get_logger
 
 
 class ManagedRedisUtils:
@@ -236,15 +236,20 @@ class ManagedKafkaUtils:
         return [registry_parameters]
     
     @staticmethod  
-    def build_kafka_service_connector_def(arg_dict, name, binding_name):  
+    def build_kafka_service_connector_def(arg_dict, name, binding_name):
+        logger = get_logger(__name__)  
         has_server_params = all(key in arg_dict for key in ["bootstrap_server", "kafka_key", "kafka_secret"])  
         partial_registry_params = any(key in arg_dict for key in ["schema_registry", "schema_secret", "schema_secret"])  
         has_registry_params = all(key in arg_dict for key in ["schema_registry", "schema_secret", "schema_secret"])  
     
-        if not has_server_params:  
+        if not has_server_params:
+            logger.info("With no space in-between, Managed Kafka bootstrap server arguments are in the form: bootstrap_server=https://pkc-xxxx.eastus.azure.confluent.cloud:9092,kafka_key=xxxxx,kafka_secret=xxxxx")
             raise ValidationError(  
-                "Managed Kafka needs the bootstrap_server, kafka_key, and kafka_secret arguments. All must be set.")  
-        if partial_registry_params and not has_registry_params:    
+                "Managed Kafka needs the bootstrap_server, kafka_key, and kafka_secret arguments. All must be set.")
+            
+              
+        if partial_registry_params and not has_registry_params:
+            logger.info("With no space in-between, Managed Kafka schema registry arguments are in the form: schema_registry=https://psrc-xxxx.westus2.azure.confluent.cloud,schema_key=xxxxx,schema_secret=xxxxx")    
             raise ValidationError(    
                 "Managed Kafka needs the schema_registry, schema_key, and schema_secret arguments. All must be set.")  
         
