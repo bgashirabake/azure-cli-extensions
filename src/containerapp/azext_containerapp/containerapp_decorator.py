@@ -1333,9 +1333,17 @@ class ContainerAppPreviewCreateDecorator(ContainerAppCreateDecorator):
                 while r is not None and r["properties"]["provisioningState"].lower() == "inprogress":
                     r = self.client.show(self.cmd, self.get_argument_resource_group_name(), self.get_argument_name())
                     time.sleep(1)
-                linker_client.linker.begin_create_or_update(resource_uri=r["id"],
-                                                            parameters=item["parameters"],
-                                                            linker_name=item["linker_name"]).result()
+                def create_or_update(parameters, linker_name):  
+                    linker_client.linker.begin_create_or_update(resource_uri=r["id"],  
+                                                                parameters=parameters,  
+                                                                linker_name=linker_name).result()  
+
+                if len(item["parameters"]) == 1:   
+                    create_or_update(item["parameters"][0], item["linker_name"])  
+                else:      
+                    parameters_bootstrap_server, parameters_schema_registry = item["linker_name"].split('.', 1)  
+                    create_or_update(item["parameters"][0], parameters_bootstrap_server)  
+                    create_or_update(item["parameters"][1], parameters_schema_registry)
         if self.get_argument_repo():
             r = self._post_process_for_repo()
 
@@ -1518,15 +1526,24 @@ class ContainerAppPreviewUpdateDecorator(ContainerAppUpdateDecorator):
                 linker_client.linker.begin_delete(resource_uri=r["id"], linker_name=item).result()
 
         # Update managed bindings
-        if self.get_argument_service_connectors_def_list() is not None:
-            linker_client = get_linker_client(self.cmd) if linker_client is None else linker_client
-            for item in self.get_argument_service_connectors_def_list():
-                while r["properties"]["provisioningState"].lower() == "inprogress":
-                    r = self.client.show(self.cmd, self.get_argument_resource_group_name(), self.get_argument_name())
-                    time.sleep(1)
-                linker_client.linker.begin_create_or_update(resource_uri=r["id"],
-                                                            parameters=item["parameters"],
-                                                            linker_name=item["linker_name"]).result()
+        if self.get_argument_service_connectors_def_list() is not None:  
+            linker_client = get_linker_client(self.cmd) if linker_client is None else linker_client  
+            for item in self.get_argument_service_connectors_def_list():  
+                while r["properties"]["provisioningState"].lower() == "inprogress":  
+                    r = self.client.show(self.cmd, self.get_argument_resource_group_name(), self.get_argument_name())  
+                    time.sleep(1)  
+
+                def create_or_update(parameters, linker_name):  
+                    linker_client.linker.begin_create_or_update(resource_uri=r["id"],  
+                                                                parameters=parameters,  
+                                                                linker_name=linker_name).result()  
+
+                if len(item["parameters"]) == 1:   
+                    create_or_update(item["parameters"][0], item["linker_name"])
+                else:      
+                    parameters_bootstrap_server, parameters_schema_registry = item["linker_name"].split('.', 1)  
+                    create_or_update(item["parameters"][0], parameters_bootstrap_server)  
+                    create_or_update(item["parameters"][1], parameters_schema_registry)
         return r
 
     def set_up_service_bindings(self):
