@@ -60,8 +60,8 @@ from ._utils import (_ensure_location_allowed,
                      safe_set, parse_metadata_flags, parse_auth_flags,
                      get_default_workload_profile_name_from_env,
                      ensure_workload_profile_supported, _generate_secret_volume_name,
-                     parse_service_bindings, check_unique_bindings, check_bindings_and_raise_error, update_connectors_with_two_parameters, AppType, get_linker_client,
-                     safe_get, _update_revision_env_secretrefs, _add_or_update_tags, _populate_secret_values,
+                     parse_service_bindings, check_unique_bindings, check_bindings_and_raise_error, update_connectors_with_two_parameters,
+                     AppType, linker_create_or_update, get_linker_client, safe_get, _update_revision_env_secretrefs, _add_or_update_tags, _populate_secret_values,
                      clean_null_values, _add_or_update_env_vars, _remove_env_vars, _get_existing_secrets, _get_acr_cred)
 from ._validators import validate_create, validate_revision_suffix
 
@@ -1348,17 +1348,12 @@ class ContainerAppPreviewCreateDecorator(ContainerAppCreateDecorator):
                                                 self.get_argument_resource_group_name(), self.get_argument_name())
 
 
-                def create_or_update(parameters, linker_name):  
-                    linker_client.linker.begin_create_or_update(resource_uri=r["id"],  
-                                                                parameters=parameters,  
-                                                                linker_name=linker_name).result()  
-
-                if len(item["parameters"]) == 1:   
-                    create_or_update(item["parameters"][0], item["linker_name"])  
+                if len(item["parameters"]) == 1:
+                    linker_create_or_update(linker_client=linker_client, r=r, parameters= item["parameters"][0], linker_name=item["linker_name"])    
                 else:      
-                    parameters_bootstrap_server, parameters_schema_registry = item["linker_name"].split('.', 1)  
-                    create_or_update(item["parameters"][0], parameters_bootstrap_server)  
-                    create_or_update(item["parameters"][1], parameters_schema_registry)
+                    parameters_bootstrap_server, parameters_schema_registry = item["linker_name"].split('.', 1)
+                    linker_create_or_update(linker_client=linker_client, r=r, parameters= item["parameters"][0], linker_name=parameters_bootstrap_server)
+                    linker_create_or_update(linker_client=linker_client, r=r, parameters= item["parameters"][1], linker_name=parameters_schema_registry) 
         if self.get_argument_repo():
             r = self._post_process_for_repo()
 
@@ -1574,19 +1569,14 @@ class ContainerAppPreviewUpdateDecorator(ContainerAppUpdateDecorator):
                 else:  
                     check_bindings_and_raise_error(self.cmd, service_connectors_def_list, service_bindings_def_list,  
                                                 self.get_argument_resource_group_name(), self.get_argument_name())
-                
+                  
 
-                def create_or_update(parameters, linker_name):  
-                    linker_client.linker.begin_create_or_update(resource_uri=r["id"],  
-                                                                parameters=parameters,  
-                                                                linker_name=linker_name).result()  
-
-                if len(item["parameters"]) == 1:   
-                    create_or_update(item["parameters"][0], item["linker_name"])
+                if len(item["parameters"]) == 1:
+                    linker_create_or_update(linker_client=linker_client, r=r, parameters= item["parameters"][0], linker_name=item["linker_name"])   
                 else:      
-                    parameters_bootstrap_server, parameters_schema_registry = item["linker_name"].split('.', 1)  
-                    create_or_update(item["parameters"][0], parameters_bootstrap_server)  
-                    create_or_update(item["parameters"][1], parameters_schema_registry)
+                    parameters_bootstrap_server, parameters_schema_registry = item["linker_name"].split('.', 1)
+                    linker_create_or_update(linker_client=linker_client, r=r, parameters= item["parameters"][0], linker_name=parameters_bootstrap_server)
+                    linker_create_or_update(linker_client=linker_client, r=r, parameters= item["parameters"][1], linker_name=parameters_schema_registry)
         return r
 
     def set_up_service_bindings(self):
