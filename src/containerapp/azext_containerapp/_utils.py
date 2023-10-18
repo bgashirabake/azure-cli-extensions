@@ -552,7 +552,7 @@ def parse_service_bindings(cmd, service_bindings_list, resource_group_name, name
          
         if is_kafka:  
             if len(service_binding) == 1:
-                binding_name = "bootstrap_server.schema_registry"  
+                binding_name = bootstrap_server_binding+registry_server_binding
             else:
                 binding_prefix = service_binding[1]
                 if '.' in service_binding[1]:
@@ -568,7 +568,8 @@ def parse_service_bindings(cmd, service_bindings_list, resource_group_name, name
                                             "and underscores ('_'). The length must not be more than 60 characters. "
                                             "By default, the binding name is the same as the service name you specified "
                                             "[my-aca-pgaddon], but you can override the default and specify your own "
-                                            "compliant binding name like this --bind my-aca-pgaddon[:my_aca_pgaddon].")
+                                            "compliant binding name like this --bind my-aca-pgaddon[:my_aca_pgaddon]."
+                                            "For the Kafka on Confluent Cloud add-on, the binding name must be no more than 13 characters")
 
         resource_client = get_mgmt_service_client(cmd.cli_ctx, ResourceManagementClient)
 
