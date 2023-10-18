@@ -243,37 +243,43 @@ class ManagedKafkaUtils:
         binding_prefix = binding_name
         if '.' in binding_prefix:
             binding_prefix = binding_prefix.replace('.', '')
-        binding_name = f"{binding_prefix}{bootstrap_server_binding}.{binding_prefix}{registry_server_binding}" if len(arg_dict) == 6 else f"{binding_prefix}{bootstrap_server_binding}"
+        binding_name = (  
+            f"{binding_prefix}{bootstrap_server_binding}.{binding_prefix}{registry_server_binding}"  
+            if len(arg_dict) == 6 else
+            f"{binding_prefix}{bootstrap_server_binding}"  
+        )
         return binding_name
 
     @staticmethod  
     def build_kafka_service_connector_def(arg_dict, name, binding_name):
         logger = get_logger(__name__)  
-        has_server_params = all(key in arg_dict for key in ["bootstrap_server", "kafka_key", "kafka_secret"])  
-        partial_registry_params = any(key in arg_dict for key in ["schema_registry", "schema_secret", "schema_secret"])  
-        has_registry_params = all(key in arg_dict for key in ["schema_registry", "schema_secret", "schema_secret"])  
+        has_server_params = all(key in arg_dict for key in ["bootstrap_server", "kafka_key", "kafka_secret"])
+        partial_registry_params = any(key in arg_dict for key in ["schema_registry", "schema_secret", "schema_secret"])
+        has_registry_params = all(key in arg_dict for key in ["schema_registry", "schema_secret", "schema_secret"])
 
         if not has_server_params:
-            logger.warning("With no space in-between, Managed Kafka bootstrap server arguments are in the form: bootstrap_server=pkc-xxxx.eastus.azure.confluent.cloud:9092,kafka_key=xxxxx,kafka_secret=xxxxx." 
+            logger.warning("With no space in-between, Managed Kafka bootstrap server arguments are in the form:"
+                           " bootstrap_server=pkc-xxxx.eastus.azure.confluent.cloud:9092,kafka_key=xxxxx,kafka_secret=xxxxx."
                            " For a REST Endpoint, the first argument takes the form: bootstrap_server=https://pkc-xxxx.eastus.azure.confluent.cloud:443")
             raise ValidationError(  
                 "Managed Kafka needs the bootstrap_server, kafka_key, and kafka_secret arguments. All must be set.")
 
 
         if partial_registry_params and not has_registry_params:
-            logger.warning("With no space in-between, Managed Kafka schema registry arguments are in the form: schema_registry=https://psrc-xxxx.westus2.azure.confluent.cloud,schema_key=xxxxx,schema_secret=xxxxx")    
+            logger.warning("With no space in-between, Managed Kafka schema registry arguments are in the form:"
+                           " schema_registry=https://psrc-xxxx.westus2.azure.confluent.cloud,schema_key=xxxxx,schema_secret=xxxxx")    
             raise ValidationError(    
-                "Managed Kafka needs the schema_registry, schema_key, and schema_secret arguments. All must be set.")  
-
-        server_parameters = []  
+                "Managed Kafka needs the schema_registry, schema_key, and schema_secret arguments. All must be set.")
+        
+        server_parameters = []
         registry_parameters = []
 
-        if has_server_params:  
-            server_parameters = ManagedKafkaUtils.build_kafka_server_params(name, arg_dict, key_vault_id=None)  
+        if has_server_params:
+            server_parameters = ManagedKafkaUtils.build_kafka_server_params(name, arg_dict, key_vault_id=None)
         if has_server_params and has_registry_params:
             if len(arg_dict) > 6:
-               logger.warning("More than the required arguments were provided. Only required arguments will be used. Proceeding with operation ...")
-            registry_parameters = ManagedKafkaUtils.build_kafka_registry_params(name, arg_dict, key_vault_id=None)  
+                logger.warning("More than the required arguments were provided. Only required arguments will be used. Proceeding with operation ...")
+            registry_parameters = ManagedKafkaUtils.build_kafka_registry_params(name, arg_dict, key_vault_id=None)
 
-        parameters = server_parameters + registry_parameters  
+        parameters = server_parameters + registry_parameters
         return {"linker_name": binding_name, "parameters": parameters, "resource_id": None}

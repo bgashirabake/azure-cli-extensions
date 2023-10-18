@@ -1542,13 +1542,12 @@ class ContainerAppPreviewUpdateDecorator(ContainerAppUpdateDecorator):
                 kafka_bootstrap_binding = f"{kafka_item}_bootstrap_server"
                 kafka_registry_binding = f"{kafka_item}_schema_registry"
 
-                # Delete managed bindings                    
-                bindings_to_delete = [binding for binding in [kafka_bootstrap_binding, kafka_registry_binding, item]  
-                                    if any(managed_binding.name == binding for managed_binding in managed_bindings)]  
+                # Delete managed bindings
+                bindings_to_delete = [binding for binding in [kafka_bootstrap_binding, kafka_registry_binding, item]
+                                      if any(managed_binding.name == binding for managed_binding in managed_bindings)]  
                 
-                for binding in bindings_to_delete:  
-                    linker_client.linker.begin_delete(resource_uri=r["id"], linker_name=binding).result()  
-
+                for binding in bindings_to_delete:
+                    linker_client.linker.begin_delete(resource_uri=r["id"], linker_name=binding).result()
 
         # Update managed bindings
         if self.get_argument_service_connectors_def_list() is not None:  
@@ -1569,10 +1568,11 @@ class ContainerAppPreviewUpdateDecorator(ContainerAppUpdateDecorator):
                 else:  
                     check_bindings_and_raise_error(self.cmd, service_connectors_def_list, service_bindings_def_list,  
                                                 self.get_argument_resource_group_name(), self.get_argument_name())
-                  
-
+                
                 if len(item["parameters"]) == 1:
-                    linker_create_or_update(linker_client=linker_client, r=r, parameters= item["parameters"][0], linker_name=item["linker_name"])   
+                    linker_create_or_update(linker_client=linker_client, r=r, parameters= item["parameters"][0], linker_name=item["linker_name"])
+
+                # Case: Kafka on Confluent Cloud. Boostrap server and Schema registry links are created. 
                 else:      
                     parameters_bootstrap_server, parameters_schema_registry = item["linker_name"].split('.', 1)
                     linker_create_or_update(linker_client=linker_client, r=r, parameters= item["parameters"][0], linker_name=parameters_bootstrap_server)
