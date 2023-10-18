@@ -109,12 +109,14 @@ class BaseContainerAppDecorator(BaseResource):
     def list_secrets(self, show_values=False):
         containerapp_def = None
         try:
-            containerapp_def = self.client.show(cmd=self.cmd, resource_group_name=self.get_argument_resource_group_name(), name=self.get_argument_name())
+            containerapp_def = self.client.show(
+                cmd=self.cmd, resource_group_name=self.get_argument_resource_group_name(), name=self.get_argument_name())
         except Exception as e:
             handle_non_404_status_code_exception(e)
 
         if not containerapp_def:
-            raise ResourceNotFoundError("The containerapp '{}' does not exist".format(self.get_argument_name()))
+            raise ResourceNotFoundError(
+                "The containerapp '{}' does not exist".format(self.get_argument_name()))
 
         if not show_values:
             return safe_get(containerapp_def, "properties", "configuration", "secrets", default=[])
@@ -133,12 +135,14 @@ class BaseContainerAppDecorator(BaseResource):
         else:
             secrets = None
             try:
-                secrets = self.client.list_secrets(cmd=self.cmd, resource_group_name=self.get_argument_resource_group_name(), name=self.get_argument_name())
+                secrets = self.client.list_secrets(
+                    cmd=self.cmd, resource_group_name=self.get_argument_resource_group_name(), name=self.get_argument_name())
             except Exception as e:  # pylint: disable=broad-except
                 handle_non_404_status_code_exception(e)
 
             containerapp_def["properties"]["configuration"]["secrets"] = secrets["value"]
-            safe_set(containerapp_def, "properties", "configuration", "secrets", value=secrets["value"])
+            safe_set(containerapp_def, "properties", "configuration",
+                     "secrets", value=secrets["value"])
 
     def get_param(self, key) -> Any:
         return self.raw_param.get(key)
@@ -312,7 +316,8 @@ class BaseContainerAppDecorator(BaseResource):
         return self.get_param("service_connectors_def_list")
 
     def set_argument_service_connectors_def_list(self, service_connectors_def_list):
-        self.set_param("service_connectors_def_list", service_connectors_def_list)
+        self.set_param("service_connectors_def_list",
+                       service_connectors_def_list)
 
     def get_argument_termination_grace_period(self):
         return self.get_param("termination_grace_period")
@@ -347,14 +352,18 @@ class ContainerAppCreateDecorator(BaseContainerAppDecorator):
         self.containerapp_def = ContainerAppModel
 
     def validate_arguments(self):
-        validate_container_app_name(self.get_argument_name(), AppType.ContainerApp.name)
-        validate_create(self.get_argument_registry_identity(), self.get_argument_registry_pass(), self.get_argument_registry_user(), self.get_argument_registry_server(), self.get_argument_no_wait())
+        validate_container_app_name(
+            self.get_argument_name(), AppType.ContainerApp.name)
+        validate_create(self.get_argument_registry_identity(), self.get_argument_registry_pass(
+        ), self.get_argument_registry_user(), self.get_argument_registry_server(), self.get_argument_no_wait())
         validate_revision_suffix(self.get_argument_revision_suffix())
 
     def construct_payload(self):
         if self.get_argument_registry_identity() and not is_registry_msi_system(self.get_argument_registry_identity()):
-            logger.info("Creating an acrpull role assignment for the registry identity")
-            create_acrpull_role_assignment(self.cmd, self.get_argument_registry_server(), self.get_argument_registry_identity(), skip_error=True)
+            logger.info(
+                "Creating an acrpull role assignment for the registry identity")
+            create_acrpull_role_assignment(self.cmd, self.get_argument_registry_server(
+            ), self.get_argument_registry_identity(), skip_error=True)
 
         if self.get_argument_yaml():
             return self.set_up_create_containerapp_yaml(name=self.get_argument_name(), file_name=self.get_argument_yaml())
@@ -363,7 +372,8 @@ class ContainerAppCreateDecorator(BaseContainerAppDecorator):
             self.set_argument_image(HELLO_WORLD_IMAGE)
 
         if self.get_argument_managed_env() is None:
-            raise RequiredArgumentMissingError('Usage error: --environment is required if not using --yaml')
+            raise RequiredArgumentMissingError(
+                'Usage error: --environment is required if not using --yaml')
 
         # Validate managed environment
         parsed_managed_env = parse_resource_id(self.get_argument_managed_env())
@@ -372,23 +382,29 @@ class ContainerAppCreateDecorator(BaseContainerAppDecorator):
         managed_env_info = None
 
         try:
-            managed_env_info = self.get_environment_client().show(cmd=self.cmd, resource_group_name=managed_env_rg, name=managed_env_name)
+            managed_env_info = self.get_environment_client().show(
+                cmd=self.cmd, resource_group_name=managed_env_rg, name=managed_env_name)
         except Exception as e:
             handle_non_404_status_code_exception(e)
 
         if not managed_env_info:
-            raise ValidationError("The environment '{}' does not exist. Specify a valid environment".format(self.get_argument_managed_env()))
+            raise ValidationError("The environment '{}' does not exist. Specify a valid environment".format(
+                self.get_argument_managed_env()))
 
         while not self.get_argument_no_wait() and safe_get(managed_env_info, "properties", "provisioningState", default="").lower() in ["inprogress", "updating"]:
-            logger.info("Waiting for environment provisioning to finish before creating container app")
+            logger.info(
+                "Waiting for environment provisioning to finish before creating container app")
             time.sleep(5)
-            managed_env_info = self.get_environment_client().show(cmd=self.cmd, resource_group_name=managed_env_rg, name=managed_env_name)
+            managed_env_info = self.get_environment_client().show(
+                cmd=self.cmd, resource_group_name=managed_env_rg, name=managed_env_name)
 
         location = managed_env_info["location"]
-        _ensure_location_allowed(self.cmd, location, CONTAINER_APPS_RP, "containerApps")
+        _ensure_location_allowed(
+            self.cmd, location, CONTAINER_APPS_RP, "containerApps")
 
         if not self.get_argument_workload_profile_name() and "workloadProfiles" in managed_env_info:
-            workload_profile_name = get_default_workload_profile_name_from_env(self.cmd, managed_env_info, managed_env_rg)
+            workload_profile_name = get_default_workload_profile_name_from_env(
+                self.cmd, managed_env_info, managed_env_rg)
             self.set_argument_workload_profile_name(workload_profile_name)
 
         external_ingress = None
@@ -404,7 +420,8 @@ class ContainerAppCreateDecorator(BaseContainerAppDecorator):
             ingress_def["external"] = external_ingress
             ingress_def["targetPort"] = self.get_argument_target_port()
             ingress_def["transport"] = self.get_argument_transport()
-            ingress_def["exposedPort"] = self.get_argument_exposed_port() if self.get_argument_transport() == "tcp" else None
+            ingress_def["exposedPort"] = self.get_argument_exposed_port(
+            ) if self.get_argument_transport() == "tcp" else None
             ingress_def["allowInsecure"] = self.get_argument_allow_insecure()
 
         secrets_def = None
@@ -418,7 +435,8 @@ class ContainerAppCreateDecorator(BaseContainerAppDecorator):
 
             # Infer credentials if not supplied and its azurecr
             if (self.get_argument_registry_user() is None or self.get_argument_registry_pass() is None) and self.get_argument_registry_identity() is None:
-                registry_user, registry_pass = _infer_acr_credentials(self.cmd, self.get_argument_registry_server(), self.get_argument_disable_warnings())
+                registry_user, registry_pass = _infer_acr_credentials(
+                    self.cmd, self.get_argument_registry_server(), self.get_argument_disable_warnings())
                 self.set_argument_registry_user(registry_user)
                 self.set_argument_registry_pass(registry_pass)
 
@@ -455,7 +473,8 @@ class ContainerAppCreateDecorator(BaseContainerAppDecorator):
         config_def["secrets"] = secrets_def
         config_def["activeRevisionsMode"] = self.get_argument_revisions_mode()
         config_def["ingress"] = ingress_def
-        config_def["registries"] = [registries_def] if registries_def is not None else None
+        config_def["registries"] = [
+            registries_def] if registries_def is not None else None
         config_def["dapr"] = dapr_def
         config_def["service"] = service_def if service_def is not None else None
 
@@ -465,7 +484,8 @@ class ContainerAppCreateDecorator(BaseContainerAppDecorator):
 
         assign_system_identity = self.get_argument_system_assigned()
         if self.get_argument_user_assigned():
-            assign_user_identities = [x.lower() for x in self.get_argument_user_assigned()]
+            assign_user_identities = [x.lower()
+                                      for x in self.get_argument_user_assigned()]
         else:
             assign_user_identities = []
 
@@ -481,8 +501,10 @@ class ContainerAppCreateDecorator(BaseContainerAppDecorator):
             subscription_id = get_subscription_id(self.cmd.cli_ctx)
 
             for r in assign_user_identities:
-                r = _ensure_identity_resource_id(subscription_id, self.get_argument_resource_group_name(), r)
-                identity_def["userAssignedIdentities"][r] = {}  # pylint: disable=unsupported-assignment-operation
+                r = _ensure_identity_resource_id(
+                    subscription_id, self.get_argument_resource_group_name(), r)
+                identity_def["userAssignedIdentities"][r] = {
+                }  # pylint: disable=unsupported-assignment-operation
 
         scale_def = self.set_up_scale_rule()
 
@@ -493,10 +515,13 @@ class ContainerAppCreateDecorator(BaseContainerAppDecorator):
             resources_def["memory"] = self.get_argument_memory()
 
         container_def = ContainerModel
-        container_def["name"] = self.get_argument_container_name() if self.get_argument_container_name() else self.get_argument_name()
-        container_def["image"] = self.get_argument_image() if not is_registry_msi_system(self.get_argument_registry_identity()) else HELLO_WORLD_IMAGE
+        container_def["name"] = self.get_argument_container_name(
+        ) if self.get_argument_container_name() else self.get_argument_name()
+        container_def["image"] = self.get_argument_image() if not is_registry_msi_system(
+            self.get_argument_registry_identity()) else HELLO_WORLD_IMAGE
         if self.get_argument_env_vars() is not None:
-            container_def["env"] = parse_env_var_flags(self.get_argument_env_vars())
+            container_def["env"] = parse_env_var_flags(
+                self.get_argument_env_vars())
         if self.get_argument_startup_command() is not None:
             container_def["command"] = self.get_argument_startup_command()
         if self.get_argument_args() is not None:
@@ -530,21 +555,25 @@ class ContainerAppCreateDecorator(BaseContainerAppDecorator):
 
         self.containerapp_def["location"] = location
         self.containerapp_def["identity"] = identity_def
-        self.containerapp_def["properties"]["environmentId"] = self.get_argument_managed_env()
+        self.containerapp_def["properties"]["environmentId"] = self.get_argument_managed_env(
+        )
         self.containerapp_def["properties"]["configuration"] = config_def
         self.containerapp_def["properties"]["template"] = template_def
         self.containerapp_def["tags"] = self.get_argument_tags()
 
         if self.get_argument_workload_profile_name():
-            self.containerapp_def["properties"]["workloadProfileName"] = self.get_argument_workload_profile_name()
+            self.containerapp_def["properties"]["workloadProfileName"] = self.get_argument_workload_profile_name(
+            )
             ensure_workload_profile_supported(self.cmd, managed_env_name, managed_env_rg, self.get_argument_workload_profile_name(),
                                               managed_env_info)
 
         if self.get_argument_registry_identity():
             if is_registry_msi_system(self.get_argument_registry_identity()):
-                set_managed_identity(self.cmd, self.get_argument_resource_group_name(), self.containerapp_def, system_assigned=True)
+                set_managed_identity(self.cmd, self.get_argument_resource_group_name(
+                ), self.containerapp_def, system_assigned=True)
             else:
-                set_managed_identity(self.cmd, self.get_argument_resource_group_name(), self.containerapp_def, user_assigned=[self.get_argument_registry_identity()])
+                set_managed_identity(self.cmd, self.get_argument_resource_group_name(
+                ), self.containerapp_def, user_assigned=[self.get_argument_registry_identity()])
 
     def create(self):
         try:
@@ -559,30 +588,38 @@ class ContainerAppCreateDecorator(BaseContainerAppDecorator):
     def construct_for_post_process(self, r):
         if is_registry_msi_system(self.get_argument_registry_identity()):
             while r["properties"]["provisioningState"] == "InProgress":
-                r = self.client.show(self.cmd, self.get_argument_resource_group_name(), self.get_argument_name())
+                r = self.client.show(
+                    self.cmd, self.get_argument_resource_group_name(), self.get_argument_name())
                 time.sleep(10)
-            logger.info("Creating an acrpull role assignment for the system identity")
+            logger.info(
+                "Creating an acrpull role assignment for the system identity")
             system_sp = r["identity"]["principalId"]
-            create_acrpull_role_assignment(self.cmd, self.get_argument_registry_server(), registry_identity=None, service_principal=system_sp)
-            containers_def = safe_get(self.containerapp_def, "properties", "template", "containers")
+            create_acrpull_role_assignment(self.cmd, self.get_argument_registry_server(
+            ), registry_identity=None, service_principal=system_sp)
+            containers_def = safe_get(
+                self.containerapp_def, "properties", "template", "containers")
             containers_def[0]["image"] = self.get_argument_image()
 
-            safe_set(self.containerapp_def, "properties", "template", "revisionSuffix", value=self.get_argument_revision_suffix())
+            safe_set(self.containerapp_def, "properties", "template",
+                     "revisionSuffix", value=self.get_argument_revision_suffix())
 
             registries_def = RegistryCredentialsModel
             registries_def["server"] = self.get_argument_registry_server()
             registries_def["identity"] = self.get_argument_registry_identity()
-            safe_set(self.containerapp_def, "properties", "configuration", "registries", value=[registries_def])
+            safe_set(self.containerapp_def, "properties",
+                     "configuration", "registries", value=[registries_def])
 
     def post_process(self, r):
         if is_registry_msi_system(self.get_argument_registry_identity()):
             r = self.create()
 
         if "properties" in r and "provisioningState" in r["properties"] and r["properties"]["provisioningState"].lower() == "waiting" and not self.get_argument_no_wait():
-            not self.get_argument_disable_warnings() and logger.warning('Containerapp creation in progress. Please monitor the creation using `az containerapp show -n {} -g {}`'.format(self.get_argument_name(), self.get_argument_resource_group_name()))
+            not self.get_argument_disable_warnings() and logger.warning(
+                'Containerapp creation in progress. Please monitor the creation using `az containerapp show -n {} -g {}`'.format(self.get_argument_name(), self.get_argument_resource_group_name()))
 
         if "configuration" in r["properties"] and "ingress" in r["properties"]["configuration"] and r["properties"]["configuration"]["ingress"] and "fqdn" in r["properties"]["configuration"]["ingress"]:
-            not self.get_argument_disable_warnings() and logger.warning("\nContainer app created. Access your app at https://{}/\n".format(r["properties"]["configuration"]["ingress"]["fqdn"]))
+            not self.get_argument_disable_warnings() and logger.warning(
+                "\nContainer app created. Access your app at https://{}/\n".format(r["properties"]["configuration"]["ingress"]["fqdn"]))
         else:
             target_port = self.get_argument_target_port() or "<port>"
             not self.get_argument_disable_warnings() and logger.warning("\nContainer app created. To access it over HTTPS, enable ingress: "
@@ -615,13 +652,15 @@ class ContainerAppCreateDecorator(BaseContainerAppDecorator):
         if not yaml_containerapp.get('type'):
             yaml_containerapp['type'] = 'Microsoft.App/containerApps'
         elif yaml_containerapp.get('type').lower() != "microsoft.app/containerapps":
-            raise ValidationError('Containerapp type must be \"Microsoft.App/ContainerApps\"')
+            raise ValidationError(
+                'Containerapp type must be \"Microsoft.App/ContainerApps\"')
 
         # Deserialize the yaml into a ContainerApp object. Need this since we're not using SDK
         try:
             deserializer = create_deserializer(self.models)
 
-            self.containerapp_def = deserializer('ContainerApp', yaml_containerapp)
+            self.containerapp_def = deserializer(
+                'ContainerApp', yaml_containerapp)
         except DeserializationError as ex:
             raise ValidationError(
                 'Invalid YAML provided. Please see https://aka.ms/azure-container-apps-yaml for a valid containerapps YAML spec.') from ex
@@ -632,7 +671,8 @@ class ContainerAppCreateDecorator(BaseContainerAppDecorator):
             tags = yaml_containerapp.get('tags')
             del yaml_containerapp['tags']
 
-        self.containerapp_def = _convert_object_from_snake_to_camel_case(_object_to_dict(self.containerapp_def))
+        self.containerapp_def = _convert_object_from_snake_to_camel_case(
+            _object_to_dict(self.containerapp_def))
         self.containerapp_def['tags'] = tags
 
         # After deserializing, some properties may need to be moved under the "properties" attribute. Need this since we're not using SDK
@@ -651,10 +691,12 @@ class ContainerAppCreateDecorator(BaseContainerAppDecorator):
         env_info = None
         if self.get_argument_managed_env():
             if not self.get_argument_disable_warnings() and env_id is not None and env_id != self.get_argument_managed_env():
-                logger.warning('The environmentId was passed along with --yaml. The value entered with --environment will be ignored, and the configuration defined in the yaml will be used instead')
+                logger.warning(
+                    'The environmentId was passed along with --yaml. The value entered with --environment will be ignored, and the configuration defined in the yaml will be used instead')
             if env_id is None:
                 env_id = self.get_argument_managed_env()
-                safe_set(self.containerapp_def, "properties", "environmentId", value=env_id)
+                safe_set(self.containerapp_def, "properties",
+                         "environmentId", value=env_id)
 
         if not self.containerapp_def["properties"].get('environmentId'):
             raise RequiredArgumentMissingError(
@@ -665,15 +707,18 @@ class ContainerAppCreateDecorator(BaseContainerAppDecorator):
             env_name = parsed_managed_env['name']
             env_rg = parsed_managed_env['resource_group']
         else:
-            raise ValidationError('Invalid environmentId specified. Environment not found')
+            raise ValidationError(
+                'Invalid environmentId specified. Environment not found')
 
         try:
-            env_info = self.get_environment_client().show(cmd=self.cmd, resource_group_name=env_rg, name=env_name)
+            env_info = self.get_environment_client().show(
+                cmd=self.cmd, resource_group_name=env_rg, name=env_name)
         except Exception as e:
             handle_non_404_status_code_exception(e)
 
         if not env_info:
-            raise ValidationError("The environment '{}' in resource group '{}' was not found".format(env_name, env_rg))
+            raise ValidationError(
+                "The environment '{}' in resource group '{}' was not found".format(env_name, env_rg))
 
         # Validate location
         if not self.containerapp_def.get('location'):
@@ -699,8 +744,10 @@ class ContainerAppCreateDecorator(BaseContainerAppDecorator):
             curr_metadata = {}
             if self.get_argument_scale_rule_http_concurrency():
                 if scale_rule_type in ('http', 'tcp'):
-                    curr_metadata["concurrentRequests"] = str(scale_rule_http_concurrency)
-            metadata_def = parse_metadata_flags(scale_rule_metadata, curr_metadata)
+                    curr_metadata["concurrentRequests"] = str(
+                        scale_rule_http_concurrency)
+            metadata_def = parse_metadata_flags(
+                scale_rule_metadata, curr_metadata)
             auth_def = parse_auth_flags(scale_rule_auth)
             if scale_rule_type == "http":
                 scale_rule_def["name"] = scale_rule_name
@@ -735,7 +782,8 @@ class ContainerAppUpdateDecorator(BaseContainerAppDecorator):
         # Validate that max_replicas is set to 0-1000
         if self.get_argument_max_replicas() is not None:
             if self.get_argument_max_replicas() < 1 or self.get_argument_max_replicas() > 1000:
-                raise ArgumentUsageError('--max-replicas must be in the range [1,1000]')
+                raise ArgumentUsageError(
+                    '--max-replicas must be in the range [1,1000]')
 
     def update(self):
         try:
@@ -743,7 +791,8 @@ class ContainerAppUpdateDecorator(BaseContainerAppDecorator):
                 cmd=self.cmd, resource_group_name=self.get_argument_resource_group_name(), name=self.get_argument_name(), container_app_envelope=self.new_containerapp,
                 no_wait=self.get_argument_no_wait())
             if not self.get_argument_no_wait() and "properties" in r and "provisioningState" in r["properties"] and r["properties"]["provisioningState"].lower() == "waiting":
-                logger.warning('Containerapp update in progress. Please monitor the update using `az containerapp show -n {} -g {}`'.format(self.get_argument_name(), self.get_argument_resource_group_name()))
+                logger.warning('Containerapp update in progress. Please monitor the update using `az containerapp show -n {} -g {}`'.format(
+                    self.get_argument_name(), self.get_argument_resource_group_name()))
             return r
         except Exception as e:
             handle_raw_exception(e)
@@ -752,12 +801,15 @@ class ContainerAppUpdateDecorator(BaseContainerAppDecorator):
         if self.get_argument_from_revision():
             r = None
             try:
-                r = self.client.show_revision(cmd=self.cmd, resource_group_name=self.get_argument_resource_group_name(), container_app_name=self.get_argument_name(), name=self.get_argument_from_revision())
+                r = self.client.show_revision(cmd=self.cmd, resource_group_name=self.get_argument_resource_group_name(
+                ), container_app_name=self.get_argument_name(), name=self.get_argument_from_revision())
             except CLIError as e:
                 handle_non_404_status_code_exception(e)
 
-            _update_revision_env_secretrefs(r["properties"]["template"]["containers"], self.get_argument_name())
-            safe_set(self.new_containerapp, "properties", "template", value=r["properties"]["template"])
+            _update_revision_env_secretrefs(
+                r["properties"]["template"]["containers"], self.get_argument_name())
+            safe_set(self.new_containerapp, "properties",
+                     "template", value=r["properties"]["template"])
 
     def _need_update_container(self):
         return self.get_argument_image() or self.get_argument_container_name() or self.get_argument_set_env_vars() is not None or self.get_argument_remove_env_vars() is not None or self.get_argument_replace_env_vars() is not None or self.get_argument_remove_all_env_vars() or self.get_argument_cpu() or self.get_argument_memory() or self.get_argument_startup_command() is not None or self.get_argument_args() is not None or self.get_argument_secret_volume_mount() is not None
@@ -769,12 +821,14 @@ class ContainerAppUpdateDecorator(BaseContainerAppDecorator):
 
         self.containerapp_def = None
         try:
-            self.containerapp_def = self.client.show(cmd=self.cmd, resource_group_name=self.get_argument_resource_group_name(), name=self.get_argument_name())
+            self.containerapp_def = self.client.show(
+                cmd=self.cmd, resource_group_name=self.get_argument_resource_group_name(), name=self.get_argument_name())
         except Exception as e:
             handle_non_404_status_code_exception(e)
 
         if not self.containerapp_def:
-            raise ResourceNotFoundError("The containerapp '{}' does not exist".format(self.get_argument_name()))
+            raise ResourceNotFoundError(
+                "The containerapp '{}' does not exist".format(self.get_argument_name()))
 
         self.new_containerapp["properties"] = {}
 
@@ -788,31 +842,40 @@ class ContainerAppUpdateDecorator(BaseContainerAppDecorator):
                         e["value"] = ""
 
         update_map = {}
-        update_map['scale'] = self.get_argument_min_replicas() or self.get_argument_max_replicas() or self.get_argument_scale_rule_name()
+        update_map['scale'] = self.get_argument_min_replicas(
+        ) or self.get_argument_max_replicas() or self.get_argument_scale_rule_name()
         update_map['container'] = self._need_update_container()
-        update_map['ingress'] = self.get_argument_ingress() or self.get_argument_target_port()
-        update_map['registry'] = self.get_argument_registry_server() or self.get_argument_registry_user() or self.get_argument_registry_pass()
+        update_map['ingress'] = self.get_argument_ingress(
+        ) or self.get_argument_target_port()
+        update_map['registry'] = self.get_argument_registry_server(
+        ) or self.get_argument_registry_user() or self.get_argument_registry_pass()
 
         if self.get_argument_tags():
-            _add_or_update_tags(self.new_containerapp, self.get_argument_tags())
+            _add_or_update_tags(self.new_containerapp,
+                                self.get_argument_tags())
 
         if self.get_argument_revision_suffix() is not None:
-            self.new_containerapp["properties"]["template"] = {} if "template" not in self.new_containerapp["properties"] else self.new_containerapp["properties"]["template"]
-            self.new_containerapp["properties"]["template"]["revisionSuffix"] = self.get_argument_revision_suffix()
+            self.new_containerapp["properties"]["template"] = {
+            } if "template" not in self.new_containerapp["properties"] else self.new_containerapp["properties"]["template"]
+            self.new_containerapp["properties"]["template"]["revisionSuffix"] = self.get_argument_revision_suffix(
+            )
 
         if self.get_argument_termination_grace_period() is not None:
             safe_set(self.new_containerapp, "properties", "template", "terminationGracePeriodSeconds",
                      value=self.get_argument_termination_grace_period())
 
         if self.get_argument_workload_profile_name():
-            self.new_containerapp["properties"]["workloadProfileName"] = self.get_argument_workload_profile_name()
+            self.new_containerapp["properties"]["workloadProfileName"] = self.get_argument_workload_profile_name(
+            )
 
-            parsed_managed_env = parse_resource_id(self.containerapp_def["properties"]["environmentId"])
+            parsed_managed_env = parse_resource_id(
+                self.containerapp_def["properties"]["environmentId"])
             managed_env_name = parsed_managed_env['name']
             managed_env_rg = parsed_managed_env['resource_group']
             managed_env_info = None
             try:
-                managed_env_info = self.get_environment_client().show(cmd=self.cmd, resource_group_name=managed_env_rg, name=managed_env_name)
+                managed_env_info = self.get_environment_client().show(
+                    cmd=self.cmd, resource_group_name=managed_env_rg, name=managed_env_name)
             except Exception as e:
                 handle_non_404_status_code_exception(e)
 
@@ -826,7 +889,8 @@ class ContainerAppUpdateDecorator(BaseContainerAppDecorator):
 
         # Containers
         if update_map["container"]:
-            self.new_containerapp["properties"]["template"] = {} if "template" not in self.new_containerapp["properties"] else self.new_containerapp["properties"]["template"]
+            self.new_containerapp["properties"]["template"] = {
+            } if "template" not in self.new_containerapp["properties"] else self.new_containerapp["properties"]["template"]
             self.new_containerapp["properties"]["template"]["containers"] = self.containerapp_def["properties"]["template"]["containers"]
             if not self.get_argument_container_name():
                 if len(self.new_containerapp["properties"]["template"]["containers"]) == 1:
@@ -849,18 +913,21 @@ class ContainerAppUpdateDecorator(BaseContainerAppDecorator):
                         if "env" not in c or not c["env"]:
                             c["env"] = []
                         # env vars
-                        _add_or_update_env_vars(c["env"], parse_env_var_flags(self.get_argument_set_env_vars()))
+                        _add_or_update_env_vars(c["env"], parse_env_var_flags(
+                            self.get_argument_set_env_vars()))
 
                     if self.get_argument_replace_env_vars() is not None:
                         # Remove other existing env_vars, then add them
                         c["env"] = []
-                        _add_or_update_env_vars(c["env"], parse_env_var_flags(self.get_argument_replace_env_vars()))
+                        _add_or_update_env_vars(c["env"], parse_env_var_flags(
+                            self.get_argument_replace_env_vars()))
 
                     if self.get_argument_remove_env_vars() is not None:
                         if "env" not in c or not c["env"]:
                             c["env"] = []
                         # env vars
-                        _remove_env_vars(c["env"], self.get_argument_remove_env_vars())
+                        _remove_env_vars(
+                            c["env"], self.get_argument_remove_env_vars())
 
                     if self.get_argument_remove_all_env_vars():
                         c["env"] = []
@@ -887,7 +954,8 @@ class ContainerAppUpdateDecorator(BaseContainerAppDecorator):
                                 "memory": self.get_argument_memory()
                             }
                     if self.get_argument_secret_volume_mount() is not None:
-                        self.new_containerapp["properties"]["template"]["volumes"] = self.containerapp_def["properties"]["template"]["volumes"]
+                        self.new_containerapp["properties"]["template"][
+                            "volumes"] = self.containerapp_def["properties"]["template"]["volumes"]
                         if "volumeMounts" not in c or not c["volumeMounts"]:
                             # if no volume mount exists, create a new volume and then mount
                             volume_def = VolumeModel
@@ -896,12 +964,15 @@ class ContainerAppUpdateDecorator(BaseContainerAppDecorator):
                             volume_def["storageType"] = "Secret"
 
                             volume_mount_def["volumeName"] = volume_def["name"]
-                            volume_mount_def["mountPath"] = self.get_argument_secret_volume_mount()
+                            volume_mount_def["mountPath"] = self.get_argument_secret_volume_mount(
+                            )
 
                             if "volumes" not in self.new_containerapp["properties"]["template"] or self.new_containerapp["properties"]["template"]["volumes"] is None:
-                                self.new_containerapp["properties"]["template"]["volumes"] = [volume_def]
+                                self.new_containerapp["properties"]["template"]["volumes"] = [
+                                    volume_def]
                             else:
-                                self.new_containerapp["properties"]["template"]["volumes"].append(volume_def)
+                                self.new_containerapp["properties"]["template"]["volumes"].append(
+                                    volume_def)
                             c["volumeMounts"] = [volume_mount_def]
                         else:
                             if len(c["volumeMounts"]) > 1:
@@ -916,12 +987,14 @@ class ContainerAppUpdateDecorator(BaseContainerAppDecorator):
                                             raise ValidationError(
                                                 "Usage error: --secret-volume-mount can only be used to update volume mounts with volumes of type secret. To update other types of volumes please use --yaml")
                                         break
-                                c["volumeMounts"][0]["mountPath"] = self.get_argument_secret_volume_mount()
+                                c["volumeMounts"][0]["mountPath"] = self.get_argument_secret_volume_mount(
+                                )
 
             # If not updating existing container, add as new container
             if not updating_existing_container:
                 if self.get_argument_image() is None:
-                    raise ValidationError("Usage error: --image is required when adding a new container")
+                    raise ValidationError(
+                        "Usage error: --image is required when adding a new container")
 
                 resources_def = None
                 if self.get_argument_cpu() is not None or self.get_argument_memory() is not None:
@@ -936,15 +1009,18 @@ class ContainerAppUpdateDecorator(BaseContainerAppDecorator):
 
                 if self.get_argument_set_env_vars() is not None:
                     # env vars
-                    _add_or_update_env_vars(container_def["env"], parse_env_var_flags(self.get_argument_set_env_vars()))
+                    _add_or_update_env_vars(container_def["env"], parse_env_var_flags(
+                        self.get_argument_set_env_vars()))
 
                 if self.get_argument_replace_env_vars() is not None:
                     # env vars
-                    _add_or_update_env_vars(container_def["env"], parse_env_var_flags(self.get_argument_replace_env_vars()))
+                    _add_or_update_env_vars(container_def["env"], parse_env_var_flags(
+                        self.get_argument_replace_env_vars()))
 
                 if self.get_argument_remove_env_vars() is not None:
                     # env vars
-                    _remove_env_vars(container_def["env"], self.get_argument_remove_env_vars())
+                    _remove_env_vars(
+                        container_def["env"], self.get_argument_remove_env_vars())
 
                 if self.get_argument_remove_all_env_vars():
                     container_def["env"] = []
@@ -953,7 +1029,8 @@ class ContainerAppUpdateDecorator(BaseContainerAppDecorator):
                     if isinstance(self.get_argument_startup_command(), list) and not self.get_argument_startup_command():
                         container_def["command"] = None
                     else:
-                        container_def["command"] = self.get_argument_startup_command()
+                        container_def["command"] = self.get_argument_startup_command(
+                        )
                 if self.get_argument_args() is not None:
                     if isinstance(self.get_argument_args(), list) and not self.get_argument_args():
                         container_def["args"] = None
@@ -962,7 +1039,8 @@ class ContainerAppUpdateDecorator(BaseContainerAppDecorator):
                 if resources_def is not None:
                     container_def["resources"] = resources_def
                 if self.get_argument_secret_volume_mount() is not None:
-                    self.new_containerapp["properties"]["template"]["volumes"] = self.containerapp_def["properties"]["template"]["volumes"]
+                    self.new_containerapp["properties"]["template"][
+                        "volumes"] = self.containerapp_def["properties"]["template"]["volumes"]
                     # generate a new volume name
                     volume_def = VolumeModel
                     volume_mount_def = VolumeMountModel
@@ -971,23 +1049,30 @@ class ContainerAppUpdateDecorator(BaseContainerAppDecorator):
 
                     # mount the volume to the container
                     volume_mount_def["volumeName"] = volume_def["name"]
-                    volume_mount_def["mountPath"] = self.get_argument_secret_volume_mount()
+                    volume_mount_def["mountPath"] = self.get_argument_secret_volume_mount(
+                    )
                     container_def["volumeMounts"] = [volume_mount_def]
                     if "volumes" not in self.new_containerapp["properties"]["template"]:
-                        self.new_containerapp["properties"]["template"]["volumes"] = [volume_def]
+                        self.new_containerapp["properties"]["template"]["volumes"] = [
+                            volume_def]
                     else:
-                        self.new_containerapp["properties"]["template"]["volumes"].append(volume_def)
+                        self.new_containerapp["properties"]["template"]["volumes"].append(
+                            volume_def)
 
-                self.new_containerapp["properties"]["template"]["containers"].append(container_def)
+                self.new_containerapp["properties"]["template"]["containers"].append(
+                    container_def)
         # Scale
         if update_map["scale"]:
-            self.new_containerapp["properties"]["template"] = {} if "template" not in self.new_containerapp["properties"] else self.new_containerapp["properties"]["template"]
+            self.new_containerapp["properties"]["template"] = {
+            } if "template" not in self.new_containerapp["properties"] else self.new_containerapp["properties"]["template"]
             if "scale" not in self.new_containerapp["properties"]["template"]:
                 self.new_containerapp["properties"]["template"]["scale"] = {}
             if self.get_argument_min_replicas() is not None:
-                self.new_containerapp["properties"]["template"]["scale"]["minReplicas"] = self.get_argument_min_replicas()
+                self.new_containerapp["properties"]["template"]["scale"]["minReplicas"] = self.get_argument_min_replicas(
+                )
             if self.get_argument_max_replicas() is not None:
-                self.new_containerapp["properties"]["template"]["scale"]["maxReplicas"] = self.get_argument_max_replicas()
+                self.new_containerapp["properties"]["template"]["scale"]["maxReplicas"] = self.get_argument_max_replicas(
+                )
 
         scale_def = None
         if self.get_argument_min_replicas() is not None or self.get_argument_max_replicas() is not None:
@@ -996,7 +1081,8 @@ class ContainerAppUpdateDecorator(BaseContainerAppDecorator):
             scale_def["maxReplicas"] = self.get_argument_max_replicas()
         # so we don't overwrite rules
         if safe_get(self.new_containerapp, "properties", "template", "scale", "rules"):
-            self.new_containerapp["properties"]["template"]["scale"].pop(["rules"])
+            self.new_containerapp["properties"]["template"]["scale"].pop([
+                                                                         "rules"])
         scale_rule_type = self.get_argument_scale_rule_type()
         if self.get_argument_scale_rule_name():
             if not scale_rule_type:
@@ -1006,8 +1092,10 @@ class ContainerAppUpdateDecorator(BaseContainerAppDecorator):
             curr_metadata = {}
             if self.get_argument_scale_rule_http_concurrency():
                 if scale_rule_type in ('http', 'tcp'):
-                    curr_metadata["concurrentRequests"] = str(self.get_argument_scale_rule_http_concurrency())
-            metadata_def = parse_metadata_flags(self.get_argument_scale_rule_metadata(), curr_metadata)
+                    curr_metadata["concurrentRequests"] = str(
+                        self.get_argument_scale_rule_http_concurrency())
+            metadata_def = parse_metadata_flags(
+                self.get_argument_scale_rule_metadata(), curr_metadata)
             auth_def = parse_auth_flags(self.get_argument_scale_rule_auth())
             if scale_rule_type == "http":
                 scale_rule_def["name"] = self.get_argument_scale_rule_name()
@@ -1031,30 +1119,36 @@ class ContainerAppUpdateDecorator(BaseContainerAppDecorator):
             self.new_containerapp["properties"]["configuration"] = {} if "configuration" not in self.new_containerapp[
                 "properties"] else self.new_containerapp["properties"]["configuration"]
             if self.get_argument_target_port() is not None or self.get_argument_ingress() is not None:
-                self.new_containerapp["properties"]["configuration"]["ingress"] = {}
+                self.new_containerapp["properties"]["configuration"]["ingress"] = {
+                }
                 if self.get_argument_ingress():
                     self.new_containerapp["properties"]["configuration"]["ingress"][
                         "external"] = self.get_argument_ingress().lower() == "external"
                 if self.get_argument_target_port():
-                    self.new_containerapp["properties"]["configuration"]["ingress"]["targetPort"] = self.get_argument_target_port()
+                    self.new_containerapp["properties"]["configuration"]["ingress"]["targetPort"] = self.get_argument_target_port(
+                    )
 
         # Registry
         if update_map["registry"]:
             self.new_containerapp["properties"]["configuration"] = {} if "configuration" not in self.new_containerapp[
                 "properties"] else self.new_containerapp["properties"]["configuration"]
             if "registries" in self.containerapp_def["properties"]["configuration"]:
-                self.new_containerapp["properties"]["configuration"]["registries"] = self.containerapp_def["properties"]["configuration"]["registries"]
+                self.new_containerapp["properties"]["configuration"][
+                    "registries"] = self.containerapp_def["properties"]["configuration"]["registries"]
             if "registries" not in self.containerapp_def["properties"]["configuration"] or \
                     self.containerapp_def["properties"]["configuration"]["registries"] is None:
-                self.new_containerapp["properties"]["configuration"]["registries"] = []
+                self.new_containerapp["properties"]["configuration"]["registries"] = [
+                ]
 
             registries_def = self.new_containerapp["properties"]["configuration"]["registries"]
 
             self.set_up_get_existing_secrets(self.containerapp_def)
             if "secrets" in self.containerapp_def["properties"]["configuration"] and self.containerapp_def["properties"]["configuration"]["secrets"]:
-                self.new_containerapp["properties"]["configuration"]["secrets"] = self.containerapp_def["properties"]["configuration"]["secrets"]
+                self.new_containerapp["properties"]["configuration"][
+                    "secrets"] = self.containerapp_def["properties"]["configuration"]["secrets"]
             else:
-                self.new_containerapp["properties"]["configuration"]["secrets"] = []
+                self.new_containerapp["properties"]["configuration"]["secrets"] = [
+                ]
 
             if self.get_argument_registry_server():
                 if not self.get_argument_registry_pass() or not self.get_argument_registry_user():
@@ -1064,8 +1158,10 @@ class ContainerAppUpdateDecorator(BaseContainerAppDecorator):
                     logger.warning(
                         'No credential was provided to access Azure Container Registry. Trying to look up...')
                     parsed = urlparse(self.get_argument_registry_server())
-                    registry_name = (parsed.netloc if parsed.scheme else parsed.path).split('.')[0]
-                    registry_user, registry_pass, _ = _get_acr_cred(self.cmd.cli_ctx, registry_name)
+                    registry_name = (
+                        parsed.netloc if parsed.scheme else parsed.path).split('.')[0]
+                    registry_user, registry_pass, _ = _get_acr_cred(
+                        self.cmd.cli_ctx, registry_name)
                     self.set_argument_registry_user(registry_user)
                     self.set_argument_registry_pass(registry_pass)
 
@@ -1101,7 +1197,8 @@ class ContainerAppUpdateDecorator(BaseContainerAppDecorator):
                     registries_def.append(registry)
 
         if not self.get_argument_revision_suffix():
-            self.new_containerapp["properties"]["template"] = {} if "template" not in self.new_containerapp["properties"] else self.new_containerapp["properties"]["template"]
+            self.new_containerapp["properties"]["template"] = {
+            } if "template" not in self.new_containerapp["properties"] else self.new_containerapp["properties"]["template"]
             self.new_containerapp["properties"]["template"]["revisionSuffix"] = None
 
     def set_up_update_containerapp_yaml(self, name, file_name):
@@ -1126,23 +1223,27 @@ class ContainerAppUpdateDecorator(BaseContainerAppDecorator):
         if not yaml_containerapp.get('type'):
             yaml_containerapp['type'] = 'Microsoft.App/containerApps'
         elif yaml_containerapp.get('type').lower() != "microsoft.app/containerapps":
-            raise ValidationError('Containerapp type must be \"Microsoft.App/ContainerApps\"')
+            raise ValidationError(
+                'Containerapp type must be \"Microsoft.App/ContainerApps\"')
 
         # Check if containerapp exists
         try:
-            self.new_containerapp = self.client.show(cmd=self.cmd, resource_group_name=self.get_argument_resource_group_name(), name=self.get_argument_name())
+            self.new_containerapp = self.client.show(
+                cmd=self.cmd, resource_group_name=self.get_argument_resource_group_name(), name=self.get_argument_name())
         except Exception as e:
             handle_non_404_status_code_exception(e)
 
         if not self.new_containerapp:
-            raise ValidationError("The containerapp '{}' does not exist".format(name))
+            raise ValidationError(
+                "The containerapp '{}' does not exist".format(name))
         existed_environment_id = self.new_containerapp['properties']['environmentId']
         self.new_containerapp = None
 
         # Deserialize the yaml into a ContainerApp object. Need this since we're not using SDK
         try:
             deserializer = create_deserializer(self.models)
-            self.new_containerapp = deserializer('ContainerApp', yaml_containerapp)
+            self.new_containerapp = deserializer(
+                'ContainerApp', yaml_containerapp)
         except DeserializationError as ex:
             raise ValidationError(
                 'Invalid YAML provided. Please see https://aka.ms/azure-container-apps-yaml for a valid containerapps YAML spec.') from ex
@@ -1153,7 +1254,8 @@ class ContainerAppUpdateDecorator(BaseContainerAppDecorator):
             tags = yaml_containerapp.get('tags')
             del yaml_containerapp['tags']
 
-        self.new_containerapp = _convert_object_from_snake_to_camel_case(_object_to_dict(self.new_containerapp))
+        self.new_containerapp = _convert_object_from_snake_to_camel_case(
+            _object_to_dict(self.new_containerapp))
         self.new_containerapp['tags'] = tags
 
         # After deserializing, some properties may need to be moved under the "properties" attribute. Need this since we're not using SDK
@@ -1161,8 +1263,10 @@ class ContainerAppUpdateDecorator(BaseContainerAppDecorator):
 
         # Change which revision we update from
         if self.get_argument_from_revision():
-            r = self.client.show_revision(cmd=self.cmd, resource_group_name=self.get_argument_resource_group_name(), container_app_name=name, name=self.get_argument_from_revision())
-            _update_revision_env_secretrefs(r["properties"]["template"]["containers"], name)
+            r = self.client.show_revision(cmd=self.cmd, resource_group_name=self.get_argument_resource_group_name(
+            ), container_app_name=name, name=self.get_argument_from_revision())
+            _update_revision_env_secretrefs(
+                r["properties"]["template"]["containers"], name)
             self.new_containerapp["properties"]["template"] = r["properties"]["template"]
 
         # Remove "additionalProperties" and read-only attributes that are introduced in the deserialization. Need this since we're not using SDK
@@ -1204,18 +1308,22 @@ class ContainerAppPreviewCreateDecorator(ContainerAppCreateDecorator):
 
     def validate_arguments(self):
         super().validate_arguments()
-        validate_create(self.get_argument_registry_identity(), self.get_argument_registry_pass(), self.get_argument_registry_user(), self.get_argument_registry_server(), self.get_argument_no_wait(), self.get_argument_source(), self.get_argument_repo(), self.get_argument_yaml(), self.get_argument_environment_type())
+        validate_create(self.get_argument_registry_identity(), self.get_argument_registry_pass(), self.get_argument_registry_user(), self.get_argument_registry_server(
+        ), self.get_argument_no_wait(), self.get_argument_source(), self.get_argument_repo(), self.get_argument_yaml(), self.get_argument_environment_type())
 
     def set_up_source(self):
         if self.get_argument_source():
             from ._up_utils import _has_dockerfile
             app, env = self._construct_app_and_env_for_source_or_repo()
             dockerfile = "Dockerfile"
-            has_dockerfile = _has_dockerfile(self.get_argument_source(), dockerfile)
+            has_dockerfile = _has_dockerfile(
+                self.get_argument_source(), dockerfile)
             # Uses buildpacks or an ACR Task to generate image if Dockerfile was not provided by the user
-            app.run_acr_build(dockerfile, self.get_argument_source(), quiet=False, build_from_source=not has_dockerfile)
+            app.run_acr_build(dockerfile, self.get_argument_source(
+            ), quiet=False, build_from_source=not has_dockerfile)
             # Validate containers exist
-            containers = safe_get(self.containerapp_def, "properties", "template", "containers", default=[])
+            containers = safe_get(
+                self.containerapp_def, "properties", "template", "containers", default=[])
             if containers is None or len(containers) == 0:
                 raise ValidationError(
                     "The container app '{}' does not have any containers. Please use --image to set the image for the container app".format(
@@ -1237,7 +1345,8 @@ class ContainerAppPreviewCreateDecorator(ContainerAppCreateDecorator):
                 # If the create command is executed multiple times however, we need to make sure that the image is not defaulted
                 # to mcr.microsoft.com/k8se/quickstart:latest if source control fails the subsequent times by setting the image
                 # to the previously deployed image.
-                containers_from_existing_container_app = safe_get(existing_container_app, "properties", "template", "containers", default=[])
+                containers_from_existing_container_app = safe_get(
+                    existing_container_app, "properties", "template", "containers", default=[])
                 if containers_from_existing_container_app is None or len(containers_from_existing_container_app) == 0:
                     raise ValidationError(
                         "The container app '{}' does not have any containers. Please use --image to set the image for the container app".format(
@@ -1246,7 +1355,8 @@ class ContainerAppPreviewCreateDecorator(ContainerAppCreateDecorator):
                     raise ValidationError(
                         "The container app '{}' does not have an image. Please use --image to set the image for the container app while creating the container app.".format(
                             self.get_argument_name()))
-                containers = safe_get(self.containerapp_def, "properties", "template", "containers", default=[])
+                containers = safe_get(
+                    self.containerapp_def, "properties", "template", "containers", default=[])
                 if containers is None or len(containers) == 0:
                     raise ValidationError(
                         "The container app '{}' does not have any containers. Please use --image to set the image for the container app".format(
@@ -1264,18 +1374,21 @@ class ContainerAppPreviewCreateDecorator(ContainerAppCreateDecorator):
         from ._up_utils import (get_token, _create_github_action)
         app, env = self._construct_app_and_env_for_source_or_repo()
         # Get GitHub access token
-        token = get_token(self.cmd, self.get_argument_repo(), self.get_argument_token())
+        token = get_token(self.cmd, self.get_argument_repo(),
+                          self.get_argument_token())
         _create_github_action(app, env, self.get_argument_service_principal_client_id(), self.get_argument_service_principal_client_secret(),
                               self.get_argument_service_principal_tenant_id(), self.get_argument_branch(), token, self.get_argument_repo(), self.get_argument_context_path())
         cache_github_token(self.cmd, token, self.get_argument_repo())
         return self.client.show(cmd=self.cmd, resource_group_name=self.get_argument_resource_group_name(), name=self.get_argument_name())
 
     def _construct_app_and_env_for_source_or_repo(self):
-        from ._up_utils import (ContainerApp, ResourceGroup, ContainerAppEnvironment, _reformat_image, get_token, _has_dockerfile, _get_dockerfile_content, _get_ingress_and_target_port, _get_registry_details, _create_github_action)
+        from ._up_utils import (ContainerApp, ResourceGroup, ContainerAppEnvironment, _reformat_image, get_token, _has_dockerfile,
+                                _get_dockerfile_content, _get_ingress_and_target_port, _get_registry_details, _create_github_action)
         ingress = self.get_argument_ingress()
         target_port = self.get_argument_target_port()
         dockerfile = "Dockerfile"
-        token = get_token(self.cmd, self.get_argument_repo(), self.get_argument_token())
+        token = get_token(self.cmd, self.get_argument_repo(),
+                          self.get_argument_token())
 
         # Parse resource group name and managed env name
         env_id = safe_get(self.containerapp_def, "properties", "environmentId")
@@ -1287,25 +1400,34 @@ class ContainerAppPreviewCreateDecorator(ContainerAppCreateDecorator):
         env_rg = parsed_env['resource_group']
 
         # Parse location
-        env_info = self.get_environment_client().show(cmd=self.cmd, resource_group_name=env_rg, name=env_name)
+        env_info = self.get_environment_client().show(
+            cmd=self.cmd, resource_group_name=env_rg, name=env_name)
         location = self.containerapp_def["location"] if "location" in self.containerapp_def else env_info['location']
 
         # Set image to None if it was previously set to the default image (case where image was not provided by the user) else reformat it
-        image = None if self.get_argument_image().__eq__(HELLO_WORLD_IMAGE) else _reformat_image(self.get_argument_source(), self.get_argument_repo(), self.get_argument_image())
+        image = None if self.get_argument_image().__eq__(HELLO_WORLD_IMAGE) else _reformat_image(
+            self.get_argument_source(), self.get_argument_repo(), self.get_argument_image())
 
-        has_dockerfile = _has_dockerfile(self.get_argument_source(), dockerfile)
+        has_dockerfile = _has_dockerfile(
+            self.get_argument_source(), dockerfile)
         if has_dockerfile:
-            dockerfile_content = _get_dockerfile_content(self.get_argument_repo(), self.get_argument_branch(), token, self.get_argument_source(), self.get_argument_context_path(), dockerfile)
-            ingress, target_port = _get_ingress_and_target_port(self.get_argument_ingress(), self.get_argument_target_port(), dockerfile_content)
+            dockerfile_content = _get_dockerfile_content(self.get_argument_repo(), self.get_argument_branch(
+            ), token, self.get_argument_source(), self.get_argument_context_path(), dockerfile)
+            ingress, target_port = _get_ingress_and_target_port(
+                self.get_argument_ingress(), self.get_argument_target_port(), dockerfile_content)
 
         # Construct ContainerApp
-        resource_group = ResourceGroup(self.cmd, self.get_argument_resource_group_name(), location=location)
+        resource_group = ResourceGroup(
+            self.cmd, self.get_argument_resource_group_name(), location=location)
         env_resource_group = ResourceGroup(self.cmd, env_rg, location=location)
-        env = ContainerAppEnvironment(self.cmd, env_name, env_resource_group, location=location)
-        app = ContainerApp(self.cmd, self.get_argument_name(), resource_group, None, image, env, target_port, self.get_argument_registry_server(), self.get_argument_registry_user(), self.get_argument_registry_pass(), self.get_argument_env_vars(), self.get_argument_workload_profile_name(), ingress)
+        env = ContainerAppEnvironment(
+            self.cmd, env_name, env_resource_group, location=location)
+        app = ContainerApp(self.cmd, self.get_argument_name(), resource_group, None, image, env, target_port, self.get_argument_registry_server(
+        ), self.get_argument_registry_user(), self.get_argument_registry_pass(), self.get_argument_env_vars(), self.get_argument_workload_profile_name(), ingress)
 
         # Fetch registry credentials
-        _get_registry_details(self.cmd, app, self.get_argument_source())  # fetch ACR creds from arguments registry arguments
+        # fetch ACR creds from arguments registry arguments
+        _get_registry_details(self.cmd, app, self.get_argument_source())
 
         return app, env
 
@@ -1314,11 +1436,13 @@ class ContainerAppPreviewCreateDecorator(ContainerAppCreateDecorator):
             r = self.create()
 
         if "properties" in r and "provisioningState" in r["properties"] and r["properties"]["provisioningState"].lower() == "waiting" and not self.get_argument_no_wait():
-            not self.get_argument_disable_warnings() and logger.warning('Containerapp creation in progress. Please monitor the creation using `az containerapp show -n {} -g {}`'.format(self.get_argument_name(), self.get_argument_resource_group_name()))
+            not self.get_argument_disable_warnings() and logger.warning(
+                'Containerapp creation in progress. Please monitor the creation using `az containerapp show -n {} -g {}`'.format(self.get_argument_name(), self.get_argument_resource_group_name()))
 
         if "configuration" in r["properties"] and "ingress" in r["properties"]["configuration"] and \
                 r["properties"]["configuration"]["ingress"] and "fqdn" in r["properties"]["configuration"]["ingress"]:
-            not self.get_argument_disable_warnings() and logger.warning("\nContainer app created. Access your app at https://{}/\n".format(r["properties"]["configuration"]["ingress"]["fqdn"]))
+            not self.get_argument_disable_warnings() and logger.warning(
+                "\nContainer app created. Access your app at https://{}/\n".format(r["properties"]["configuration"]["ingress"]["fqdn"]))
         else:
             target_port = self.get_argument_target_port() or "<port>"
             not self.get_argument_disable_warnings() and logger.warning(
@@ -1331,30 +1455,37 @@ class ContainerAppPreviewCreateDecorator(ContainerAppCreateDecorator):
 
             for item in self.get_argument_service_connectors_def_list():
                 while r is not None and r["properties"]["provisioningState"].lower() == "inprogress":
-                    r = self.client.show(self.cmd, self.get_argument_resource_group_name(), self.get_argument_name())
+                    r = self.client.show(
+                        self.cmd, self.get_argument_resource_group_name(), self.get_argument_name())
                     time.sleep(1)
 
                 service_connectors_def_list, service_bindings_def_list = parse_service_bindings(self.cmd,
-                                                                                            self.get_argument_service_bindings(),
-                                                                                            self.get_argument_resource_group_name(),
-                                                                                            self.get_argument_name())
-                self.set_argument_service_connectors_def_list(service_connectors_def_list)
+                                                                                                self.get_argument_service_bindings(),
+                                                                                                self.get_argument_resource_group_name(),
+                                                                                                self.get_argument_name())
+                self.set_argument_service_connectors_def_list(
+                    service_connectors_def_list)
 
                 # Case: Kafka on confluent cloud with two linker operations. Validate uniqueness across all bindings
-                if any(len(item["parameters"]) == 2 for item in service_connectors_def_list):    
-                    updated_service_connectors = update_connectors_with_two_parameters(item, service_connectors_def_list.copy(), r["id"])  
-                    check_bindings_and_raise_error(self.cmd, updated_service_connectors, service_bindings_def_list,  
-                                                self.get_argument_resource_group_name(), self.get_argument_name())  
-                else:  
-                    check_bindings_and_raise_error(self.cmd, service_connectors_def_list, service_bindings_def_list,  
-                                                self.get_argument_resource_group_name(), self.get_argument_name())
+                if any(len(item["parameters"]) == 2 for item in service_connectors_def_list):
+                    updated_service_connectors = update_connectors_with_two_parameters(
+                        item, service_connectors_def_list.copy(), r["id"])
+                    check_bindings_and_raise_error(self.cmd, updated_service_connectors, service_bindings_def_list,
+                                                   self.get_argument_resource_group_name(), self.get_argument_name())
+                else:
+                    check_bindings_and_raise_error(self.cmd, service_connectors_def_list, service_bindings_def_list,
+                                                   self.get_argument_resource_group_name(), self.get_argument_name())
 
                 if len(item["parameters"]) == 1:
-                    linker_create_or_update(linker_client=linker_client, r=r, parameters= item["parameters"][0], linker_name=item["linker_name"])    
-                else:      
-                    parameters_bootstrap_server, parameters_schema_registry = item["linker_name"].split('.', 1)
-                    linker_create_or_update(linker_client=linker_client, r=r, parameters= item["parameters"][0], linker_name=parameters_bootstrap_server)
-                    linker_create_or_update(linker_client=linker_client, r=r, parameters= item["parameters"][1], linker_name=parameters_schema_registry) 
+                    linker_create_or_update(
+                        linker_client=linker_client, r=r, parameters=item["parameters"][0], linker_name=item["linker_name"])
+                else:
+                    parameters_bootstrap_server, parameters_schema_registry = item["linker_name"].split(
+                        '.', 1)
+                    linker_create_or_update(
+                        linker_client=linker_client, r=r, parameters=item["parameters"][0], linker_name=parameters_bootstrap_server)
+                    linker_create_or_update(
+                        linker_client=linker_client, r=r, parameters=item["parameters"][1], linker_name=parameters_schema_registry)
         if self.get_argument_repo():
             r = self._post_process_for_repo()
 
@@ -1363,11 +1494,13 @@ class ContainerAppPreviewCreateDecorator(ContainerAppCreateDecorator):
     def set_up_extended_location(self):
         if self.get_argument_environment_type() == CONNECTED_ENVIRONMENT_TYPE:
             if not self.containerapp_def.get('extendedLocation'):
-                env_id = safe_get(self.containerapp_def, "properties", 'environmentId') or self.get_argument_managed_env()
+                env_id = safe_get(self.containerapp_def, "properties",
+                                  'environmentId') or self.get_argument_managed_env()
                 parsed_env = parse_resource_id(env_id)
                 env_name = parsed_env['name']
                 env_rg = parsed_env['resource_group']
-                env_info = self.get_environment_client().show(cmd=self.cmd, resource_group_name=env_rg, name=env_name)
+                env_info = self.get_environment_client().show(
+                    cmd=self.cmd, resource_group_name=env_rg, name=env_name)
                 self.containerapp_def["extendedLocation"] = env_info["extendedLocation"]
 
     def set_up_service_binds(self):
@@ -1376,16 +1509,20 @@ class ContainerAppPreviewCreateDecorator(ContainerAppCreateDecorator):
                                                                                             self.get_argument_service_bindings(),
                                                                                             self.get_argument_resource_group_name(),
                                                                                             self.get_argument_name())
-            self.set_argument_service_connectors_def_list(service_connectors_def_list)
+            self.set_argument_service_connectors_def_list(
+                service_connectors_def_list)
             unique_bindings = check_unique_bindings(self.cmd, service_connectors_def_list, service_bindings_def_list,
                                                     self.get_argument_resource_group_name(), self.get_argument_name())
             if not unique_bindings:
-                raise ValidationError("Binding names across managed and dev services should be unique.")
-            safe_set(self.containerapp_def, "properties", "template", "serviceBinds", value=service_bindings_def_list)
+                raise ValidationError(
+                    "Binding names across managed and dev services should be unique.")
+            safe_set(self.containerapp_def, "properties", "template",
+                     "serviceBinds", value=service_bindings_def_list)
 
     def get_environment_client(self):
         if self.get_argument_yaml():
-            env = safe_get(self.containerapp_def, "properties", "environmentId")
+            env = safe_get(self.containerapp_def,
+                           "properties", "environmentId")
         else:
             env = self.get_argument_managed_env()
 
@@ -1398,11 +1535,13 @@ class ContainerAppPreviewCreateDecorator(ContainerAppCreateDecorator):
         # Validate environment type
         if parsed_env.get('resource_type').lower() == CONNECTED_ENVIRONMENT_RESOURCE_TYPE.lower():
             if environment_type == MANAGED_ENVIRONMENT_TYPE:
-                logger.warning("User passed a connectedEnvironment resource id but did not specify --environment-type connected. Using environment type connected.")
+                logger.warning(
+                    "User passed a connectedEnvironment resource id but did not specify --environment-type connected. Using environment type connected.")
             environment_type = CONNECTED_ENVIRONMENT_TYPE
         else:
             if environment_type == CONNECTED_ENVIRONMENT_TYPE:
-                logger.warning("User passed a managedEnvironment resource id but specified --environment-type connected. Using environment type managed.")
+                logger.warning(
+                    "User passed a managedEnvironment resource id but specified --environment-type connected. Using environment type managed.")
             environment_type = MANAGED_ENVIRONMENT_TYPE
 
         self.set_argument_environment_type(environment_type)
@@ -1458,22 +1597,29 @@ class ContainerAppPreviewUpdateDecorator(ContainerAppUpdateDecorator):
     def set_up_source(self):
         if self.get_argument_source():
             if self.get_argument_yaml():
-                raise MutuallyExclusiveArgumentError("Cannot use --source with --yaml together. Can either deploy from a local directory or provide a yaml file")
+                raise MutuallyExclusiveArgumentError(
+                    "Cannot use --source with --yaml together. Can either deploy from a local directory or provide a yaml file")
             # Check if an ACR registry is associated with the container app
-            existing_registries = safe_get(self.containerapp_def, "properties", "configuration", "registries", default=[])
-            existing_registries = [r for r in existing_registries if ACR_IMAGE_SUFFIX in r["server"]]
+            existing_registries = safe_get(
+                self.containerapp_def, "properties", "configuration", "registries", default=[])
+            existing_registries = [
+                r for r in existing_registries if ACR_IMAGE_SUFFIX in r["server"]]
             if existing_registries is None or len(existing_registries) == 0:
                 raise ValidationError(
                     "Error: The containerapp '{}' does not have an ACR registry associated with it. Please specify a registry using the --registry-server argument while creating the ContainerApp".format(
                         self.get_argument_name()))
             registry_server = existing_registries[0]["server"]
             parsed = urlparse(registry_server)
-            registry_name = (parsed.netloc if parsed.scheme else parsed.path).split('.')[0]
-            registry_user, registry_pass, _ = _get_acr_cred(self.cmd.cli_ctx, registry_name)
-            self._update_container_app_source(cmd=self.cmd, registry_server=registry_server, registry_user=registry_user, registry_pass=registry_pass)
+            registry_name = (
+                parsed.netloc if parsed.scheme else parsed.path).split('.')[0]
+            registry_user, registry_pass, _ = _get_acr_cred(
+                self.cmd.cli_ctx, registry_name)
+            self._update_container_app_source(
+                cmd=self.cmd, registry_server=registry_server, registry_user=registry_user, registry_pass=registry_pass)
 
     def _update_container_app_source(self, cmd, registry_server, registry_user, registry_pass):
-        from ._up_utils import (ContainerApp, ResourceGroup, ContainerAppEnvironment, _reformat_image, _has_dockerfile, _get_dockerfile_content, _get_ingress_and_target_port, _get_registry_details)
+        from ._up_utils import (ContainerApp, ResourceGroup, ContainerAppEnvironment, _reformat_image,
+                                _has_dockerfile, _get_dockerfile_content, _get_ingress_and_target_port, _get_registry_details)
 
         ingress = self.get_argument_ingress()
         target_port = self.get_argument_target_port()
@@ -1489,41 +1635,54 @@ class ContainerAppPreviewUpdateDecorator(ContainerAppUpdateDecorator):
         env_rg = parsed_env['resource_group']
 
         # Set image to None if it was previously set to the default image (case where image was not provided by the user) else reformat it
-        image = None if self.get_argument_image() is None else _reformat_image(source=self.get_argument_source(), image=self.get_argument_image(), repo=None)
+        image = None if self.get_argument_image() is None else _reformat_image(
+            source=self.get_argument_source(), image=self.get_argument_image(), repo=None)
 
         # Parse location
-        env_info = self.get_environment_client().show(cmd=self.cmd, resource_group_name=env_rg, name=env_name)
+        env_info = self.get_environment_client().show(
+            cmd=self.cmd, resource_group_name=env_rg, name=env_name)
         location = self.containerapp_def["location"] if "location" in self.containerapp_def else env_info['location']
 
         # Check if source contains a Dockerfile
         # and ignore checking if Dockerfile exists in repo since GitHub action inherently checks for it.
-        has_dockerfile = _has_dockerfile(self.get_argument_source(), dockerfile)
+        has_dockerfile = _has_dockerfile(
+            self.get_argument_source(), dockerfile)
         if has_dockerfile:
-            dockerfile_content = _get_dockerfile_content(repo=None, branch=None, token=None, source=self.get_argument_source(), context_path=None, dockerfile=dockerfile)
-            ingress, target_port = _get_ingress_and_target_port(self.get_argument_ingress(), self.get_argument_target_port(), dockerfile_content)
+            dockerfile_content = _get_dockerfile_content(
+                repo=None, branch=None, token=None, source=self.get_argument_source(), context_path=None, dockerfile=dockerfile)
+            ingress, target_port = _get_ingress_and_target_port(
+                self.get_argument_ingress(), self.get_argument_target_port(), dockerfile_content)
 
         # Construct ContainerApp
-        resource_group = ResourceGroup(cmd, self.get_argument_resource_group_name(), location=location)
+        resource_group = ResourceGroup(
+            cmd, self.get_argument_resource_group_name(), location=location)
         env_resource_group = ResourceGroup(cmd, env_rg, location=location)
-        env = ContainerAppEnvironment(cmd, env_name, env_resource_group, location=location)
-        app = ContainerApp(cmd=cmd, name=self.get_argument_name(), resource_group=resource_group, image=image, env=env, target_port=target_port, workload_profile_name=self.get_argument_workload_profile_name(), ingress=ingress, registry_server=registry_server, registry_user=registry_user, registry_pass=registry_pass)
+        env = ContainerAppEnvironment(
+            cmd, env_name, env_resource_group, location=location)
+        app = ContainerApp(cmd=cmd, name=self.get_argument_name(), resource_group=resource_group, image=image, env=env, target_port=target_port,
+                           workload_profile_name=self.get_argument_workload_profile_name(), ingress=ingress, registry_server=registry_server, registry_user=registry_user, registry_pass=registry_pass)
 
         # Fetch registry credentials
-        _get_registry_details(cmd, app, self.get_argument_source())  # fetch ACR creds from arguments registry arguments
+        # fetch ACR creds from arguments registry arguments
+        _get_registry_details(cmd, app, self.get_argument_source())
 
         # Uses buildpacks or an ACR Task to generate image if Dockerfile was not provided by the user
-        app.run_acr_build(dockerfile, self.get_argument_source(), quiet=False, build_from_source=not has_dockerfile)
+        app.run_acr_build(dockerfile, self.get_argument_source(
+        ), quiet=False, build_from_source=not has_dockerfile)
 
         # Validate an image associated with the container app exists
-        containers = safe_get(self.containerapp_def, "properties", "template", "containers", default=[])
+        containers = safe_get(
+            self.containerapp_def, "properties", "template", "containers", default=[])
         if containers is None or len(containers) == 0:
             raise ValidationError(
                 "The container app '{}' does not have any containers. Please use --image to set the image for the container app".format(
                     self.get_argument_name()))
-        self.new_containerapp["properties"]["template"] = {} if "template" not in self.new_containerapp["properties"] else self.new_containerapp["properties"]["template"]
+        self.new_containerapp["properties"]["template"] = {
+        } if "template" not in self.new_containerapp["properties"] else self.new_containerapp["properties"]["template"]
         self.new_containerapp["properties"]["template"]["containers"] = containers
         # Update image in the container app
-        self.new_containerapp["properties"]["template"]["containers"][0]["image"] = HELLO_WORLD_IMAGE if app.image is None else app.image
+        self.new_containerapp["properties"]["template"]["containers"][0][
+            "image"] = HELLO_WORLD_IMAGE if app.image is None else app.image
 
     def post_process(self, r):
         # Delete managed bindings
@@ -1533,10 +1692,12 @@ class ContainerAppPreviewUpdateDecorator(ContainerAppUpdateDecorator):
             linker_client = get_linker_client(self.cmd)
             for item in unbind_service_bindings:
                 while r["properties"]["provisioningState"].lower() == "inprogress":
-                    r = self.client.show(self.cmd, self.get_argument_resource_group_name(), self.get_argument_name())
+                    r = self.client.show(
+                        self.cmd, self.get_argument_resource_group_name(), self.get_argument_name())
                     time.sleep(1)
                 # Get managed bindings
-                managed_bindings = linker_client.linker.list(resource_uri=r["id"])
+                managed_bindings = linker_client.linker.list(
+                    resource_uri=r["id"])
 
                 # Update binding format for kafka bindings
                 kafka_item = item.replace('.', '')
@@ -1547,50 +1708,64 @@ class ContainerAppPreviewUpdateDecorator(ContainerAppUpdateDecorator):
                 for managed_binding in managed_bindings:
                     binding_name = managed_binding.name
                     if binding_name in {kafka_bootstrap_binding, kafka_registry_binding, item}:
-                        delete_managed_binding(linker_client, r["id"], binding_name if binding_name != item else item)
+                        delete_managed_binding(
+                            linker_client, r["id"], binding_name if binding_name != item else item)
 
         # Update managed bindings
         if self.get_argument_service_connectors_def_list() is not None:
-            linker_client = get_linker_client(self.cmd) if linker_client is None else linker_client
+            linker_client = get_linker_client(
+                self.cmd) if linker_client is None else linker_client
             for item in self.get_argument_service_connectors_def_list():
                 while r["properties"]["provisioningState"].lower() == "inprogress":
-                    r = self.client.show(self.cmd, self.get_argument_resource_group_name(), self.get_argument_name())
+                    r = self.client.show(
+                        self.cmd, self.get_argument_resource_group_name(), self.get_argument_name())
                     time.sleep(1)
                 service_connectors_def_list, service_bindings_def_list = parse_service_bindings(self.cmd,
-                                                                                            self.get_argument_service_bindings(),
-                                                                                            self.get_argument_resource_group_name(),
-                                                                                            self.get_argument_name())
-                self.set_argument_service_connectors_def_list(service_connectors_def_list)
-                if any(len(item["parameters"]) == 2 for item in service_connectors_def_list):    
-                    updated_service_connectors = update_connectors_with_two_parameters(item, service_connectors_def_list.copy(), r["id"])  
-                    check_bindings_and_raise_error(self.cmd, updated_service_connectors, service_bindings_def_list,  
-                                                self.get_argument_resource_group_name(), self.get_argument_name())  
-                else:  
-                    check_bindings_and_raise_error(self.cmd, service_connectors_def_list, service_bindings_def_list,  
-                                                self.get_argument_resource_group_name(), self.get_argument_name())
-                
-                if len(item["parameters"]) == 1:
-                    linker_create_or_update(linker_client=linker_client, r=r, parameters= item["parameters"][0], linker_name=item["linker_name"])
+                                                                                                self.get_argument_service_bindings(),
+                                                                                                self.get_argument_resource_group_name(),
+                                                                                                self.get_argument_name())
+                self.set_argument_service_connectors_def_list(
+                    service_connectors_def_list)
+                if any(len(item["parameters"]) == 2 for item in service_connectors_def_list):
+                    updated_service_connectors = update_connectors_with_two_parameters(
+                        item, service_connectors_def_list.copy(), r["id"])
+                    check_bindings_and_raise_error(self.cmd, updated_service_connectors, service_bindings_def_list,
+                                                   self.get_argument_resource_group_name(), self.get_argument_name())
+                else:
+                    check_bindings_and_raise_error(self.cmd, service_connectors_def_list, service_bindings_def_list,
+                                                   self.get_argument_resource_group_name(), self.get_argument_name())
 
-                # Case: Kafka on Confluent Cloud. Boostrap server and Schema registry links are created. 
-                else:      
-                    parameters_bootstrap_server, parameters_schema_registry = item["linker_name"].split('.', 1)
-                    linker_create_or_update(linker_client=linker_client, r=r, parameters= item["parameters"][0], linker_name=parameters_bootstrap_server)
-                    linker_create_or_update(linker_client=linker_client, r=r, parameters= item["parameters"][1], linker_name=parameters_schema_registry)
+                if len(item["parameters"]) == 1:
+                    linker_create_or_update(
+                        linker_client=linker_client, r=r, parameters=item["parameters"][0], linker_name=item["linker_name"])
+
+                # Case: Kafka on Confluent Cloud. Boostrap server and Schema registry links are created.
+                else:
+                    parameters_bootstrap_server, parameters_schema_registry = item["linker_name"].split(
+                        '.', 1)
+                    linker_create_or_update(
+                        linker_client=linker_client, r=r, parameters=item["parameters"][0], linker_name=parameters_bootstrap_server)
+                    linker_create_or_update(
+                        linker_client=linker_client, r=r, parameters=item["parameters"][1], linker_name=parameters_schema_registry)
         return r
 
     def set_up_service_bindings(self):
         if self.get_argument_service_bindings() is not None:
             linker_client = get_linker_client(self.cmd)
 
-            service_connectors_def_list, service_bindings_def_list = parse_service_bindings(self.cmd, self.get_argument_service_bindings(), self.get_argument_resource_group_name(), self.get_argument_name())
-            self.set_argument_service_connectors_def_list(service_connectors_def_list)
-            service_bindings_used_map = {update_item["name"]: False for update_item in service_bindings_def_list}
+            service_connectors_def_list, service_bindings_def_list = parse_service_bindings(
+                self.cmd, self.get_argument_service_bindings(), self.get_argument_resource_group_name(), self.get_argument_name())
+            self.set_argument_service_connectors_def_list(
+                service_connectors_def_list)
+            service_bindings_used_map = {
+                update_item["name"]: False for update_item in service_bindings_def_list}
 
-            safe_set(self.new_containerapp, "properties", "template", "serviceBinds", value=self.containerapp_def["properties"]["template"]["serviceBinds"])
+            safe_set(self.new_containerapp, "properties", "template", "serviceBinds",
+                     value=self.containerapp_def["properties"]["template"]["serviceBinds"])
 
             if self.new_containerapp["properties"]["template"]["serviceBinds"] is None:
-                self.new_containerapp["properties"]["template"]["serviceBinds"] = []
+                self.new_containerapp["properties"]["template"]["serviceBinds"] = [
+                ]
 
             for item in self.new_containerapp["properties"]["template"]["serviceBinds"]:
                 for update_item in service_bindings_def_list:
@@ -1601,13 +1776,17 @@ class ContainerAppPreviewUpdateDecorator(ContainerAppUpdateDecorator):
             for update_item in service_bindings_def_list:
                 if service_bindings_used_map[update_item["name"]] is False:
                     # Check if it doesn't exist in existing service linkers
-                    managed_bindings = linker_client.linker.list(resource_uri=self.containerapp_def["id"])
+                    managed_bindings = linker_client.linker.list(
+                        resource_uri=self.containerapp_def["id"])
                     if managed_bindings:
-                        managed_bindings_list = [item.name for item in managed_bindings]
+                        managed_bindings_list = [
+                            item.name for item in managed_bindings]
                         if update_item["name"] in managed_bindings_list:
-                            raise ValidationError("Binding names across managed and dev services should be unique.")
+                            raise ValidationError(
+                                "Binding names across managed and dev services should be unique.")
 
-                    self.new_containerapp["properties"]["template"]["serviceBinds"].append(update_item)
+                    self.new_containerapp["properties"]["template"]["serviceBinds"].append(
+                        update_item)
 
             if service_connectors_def_list is not None:
                 for item in service_connectors_def_list:
@@ -1616,15 +1795,18 @@ class ContainerAppPreviewUpdateDecorator(ContainerAppUpdateDecorator):
                     for binds in self.new_containerapp["properties"]["template"]["serviceBinds"]:
                         service_bindings_list.append(binds["name"])
                         if item["linker_name"] in service_bindings_list:
-                            raise ValidationError("Binding names across managed and dev services should be unique.")
+                            raise ValidationError(
+                                "Binding names across managed and dev services should be unique.")
 
     def set_up_unbind_service_bindings(self):
         if self.get_argument_unbind_service_bindings():
-            new_template = self.new_containerapp.setdefault("properties", {}).setdefault("template", {})
+            new_template = self.new_containerapp.setdefault(
+                "properties", {}).setdefault("template", {})
             existing_template = self.containerapp_def["properties"]["template"]
 
             if not self.get_argument_service_bindings():
-                new_template["serviceBinds"] = existing_template.get("serviceBinds", [])
+                new_template["serviceBinds"] = existing_template.get(
+                    "serviceBinds", [])
 
             service_bindings_dict = {}
             if new_template["serviceBinds"]:
@@ -1647,9 +1829,11 @@ class ContainerAppPreviewListDecorator(BaseContainerAppDecorator):
     def list(self):
         containerapps = super().list()
         if self.get_argument_environment_type() == CONNECTED_ENVIRONMENT_TYPE:
-            containerapps = [c for c in containerapps if CONNECTED_ENVIRONMENT_RESOURCE_TYPE in c["properties"]["environmentId"]]
+            containerapps = [
+                c for c in containerapps if CONNECTED_ENVIRONMENT_RESOURCE_TYPE in c["properties"]["environmentId"]]
         if self.get_argument_environment_type() == MANAGED_ENVIRONMENT_TYPE:
-            containerapps = [c for c in containerapps if MANAGED_ENVIRONMENT_RESOURCE_TYPE in c["properties"]["environmentId"]]
+            containerapps = [
+                c for c in containerapps if MANAGED_ENVIRONMENT_RESOURCE_TYPE in c["properties"]["environmentId"]]
         return containerapps
 
     def get_environment_client(self):
