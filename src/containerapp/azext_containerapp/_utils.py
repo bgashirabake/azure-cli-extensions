@@ -552,7 +552,7 @@ def parse_service_bindings(cmd, service_bindings_list, resource_group_name, name
 
         if is_kafka:  
             if len(service_binding) == 1:
-                binding_name = "bootstrap_server.schema_registry"  
+                binding_name = bootstrap_server_binding+registry_server_binding  
             else:
                 binding_prefix = service_binding[1]
                 if '.' in service_binding[1]:

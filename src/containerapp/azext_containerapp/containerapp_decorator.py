@@ -1443,6 +1443,9 @@ class ContainerAppPreviewUpdateDecorator(ContainerAppUpdateDecorator):
 
     def get_argument_source(self):
         return self.get_param("source")
+    
+    def is_binding_in_managed_bindings(self, binding_name, managed_bindings):  
+        return any(managed_binding.name == binding_name for managed_binding in managed_bindings)
 
     def set_up_source(self):
         if self.get_argument_source():
@@ -1517,13 +1520,30 @@ class ContainerAppPreviewUpdateDecorator(ContainerAppUpdateDecorator):
     def post_process(self, r):
         # Delete managed bindings
         linker_client = None
-        if self.get_argument_unbind_service_bindings():
+        unbind_service_bindings = self.get_argument_unbind_service_bindings()
+        if unbind_service_bindings:
             linker_client = get_linker_client(self.cmd)
-            for item in self.get_argument_unbind_service_bindings():
+            for item in unbind_service_bindings:
                 while r["properties"]["provisioningState"].lower() == "inprogress":
                     r = self.client.show(self.cmd, self.get_argument_resource_group_name(), self.get_argument_name())
                     time.sleep(1)
-                linker_client.linker.begin_delete(resource_uri=r["id"], linker_name=item).result()
+                # Get managed bindings
+                managed_bindings = linker_client.linker.list(resource_uri=r["id"])
+
+                # Update binding format for kafka bindings
+                kafka_item = "" if item == "kafkaconfluent" else item.replace('.', '')
+
+
+                kafka_bootstrap_binding = f"{kafka_item}_bootstrap_server"
+                kafka_registry_binding = f"{kafka_item}_schema_registry"
+
+                # Delete managed bindings    
+                if self.is_binding_in_managed_bindings(kafka_bootstrap_binding, managed_bindings):
+                    linker_client.linker.begin_delete(resource_uri=r["id"], linker_name=kafka_bootstrap_binding).result()  
+                if self.is_binding_in_managed_bindings(kafka_registry_binding, managed_bindings): 
+                    linker_client.linker.begin_delete(resource_uri=r["id"], linker_name=kafka_registry_binding).result()  
+                else:  
+                    linker_client.linker.begin_delete(resource_uri=r["id"], linker_name=item).result()
 
         # Update managed bindings
         if self.get_argument_service_connectors_def_list() is not None:  
