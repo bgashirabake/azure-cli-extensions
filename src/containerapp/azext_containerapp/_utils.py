@@ -427,7 +427,19 @@ def get_linker_client(cmd):
     linker_client = ServiceLinkerManagementClient(credential)
     return linker_client
 
+def check_bindings_and_raise_error(cmd, connectors, bindings, resource_group, name):  
+    unique_bindings = check_unique_bindings(cmd, connectors, bindings, resource_group, name)  
+    if not unique_bindings:  
+        raise ValidationError("Binding names across managed and dev services should be unique.")  
 
+# Case: Kafka on Confluent Cloud bindings  
+def update_connectors_with_two_parameters(item, connectors, resource_id):  
+    connectors = [item for item in connectors if not len(item["parameters"]) == 2]  
+    parameters_bootstrap_server, parameters_schema_registry = item["linker_name"].split('.', 1)  
+    connectors.append({"linker_name": parameters_bootstrap_server, "parameters": item["parameters"][0], "resource_id": resource_id})  
+    connectors.append({"linker_name": parameters_schema_registry, "parameters": item["parameters"][1], "resource_id": resource_id})  
+    return connectors  
+   
 def process_service(cmd, resource_list, service_name, arg_dict, subscription_id, resource_group_name, name,
                     binding_name, service_connector_def_list, service_bindings_def_list):
     # Check if the service exists in the list of dict

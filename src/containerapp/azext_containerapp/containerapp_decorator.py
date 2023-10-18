@@ -60,7 +60,7 @@ from ._utils import (_ensure_location_allowed,
                      safe_set, parse_metadata_flags, parse_auth_flags,
                      get_default_workload_profile_name_from_env,
                      ensure_workload_profile_supported, _generate_secret_volume_name,
-                     parse_service_bindings, check_unique_bindings, AppType, get_linker_client,
+                     parse_service_bindings, check_unique_bindings, check_bindings_and_raise_error, update_connectors_with_two_parameters, AppType, get_linker_client,
                      safe_get, _update_revision_env_secretrefs, _add_or_update_tags, _populate_secret_values,
                      clean_null_values, _add_or_update_env_vars, _remove_env_vars, _get_existing_secrets, _get_acr_cred)
 from ._validators import validate_create, validate_revision_suffix
@@ -1333,6 +1333,21 @@ class ContainerAppPreviewCreateDecorator(ContainerAppCreateDecorator):
                 while r is not None and r["properties"]["provisioningState"].lower() == "inprogress":
                     r = self.client.show(self.cmd, self.get_argument_resource_group_name(), self.get_argument_name())
                     time.sleep(1)
+
+                service_connectors_def_list, service_bindings_def_list = parse_service_bindings(self.cmd,
+                                                                                            self.get_argument_service_bindings(),
+                                                                                            self.get_argument_resource_group_name(),
+                                                                                            self.get_argument_name())
+                self.set_argument_service_connectors_def_list(service_connectors_def_list)
+                if any(len(item["parameters"]) == 2 for item in service_connectors_def_list):    
+                    updated_service_connectors = update_connectors_with_two_parameters(item, service_connectors_def_list.copy(), r["id"])  
+                    check_bindings_and_raise_error(self.cmd, updated_service_connectors, service_bindings_def_list,  
+                                                self.get_argument_resource_group_name(), self.get_argument_name())  
+                else:  
+                    check_bindings_and_raise_error(self.cmd, service_connectors_def_list, service_bindings_def_list,  
+                                                self.get_argument_resource_group_name(), self.get_argument_name())
+
+
                 def create_or_update(parameters, linker_name):  
                     linker_client.linker.begin_create_or_update(resource_uri=r["id"],  
                                                                 parameters=parameters,  
@@ -1533,12 +1548,12 @@ class ContainerAppPreviewUpdateDecorator(ContainerAppUpdateDecorator):
                 kafka_registry_binding = f"{kafka_item}_schema_registry"
 
                 # Delete managed bindings                    
-                if any(managed_binding.name == kafka_bootstrap_binding for managed_binding in managed_bindings):
-                    linker_client.linker.begin_delete(resource_uri=r["id"], linker_name=kafka_bootstrap_binding).result()
-                if any(managed_binding.name == kafka_registry_binding for managed_binding in managed_bindings):
-                    linker_client.linker.begin_delete(resource_uri=r["id"], linker_name=kafka_registry_binding).result()  
-                else:  
-                    linker_client.linker.begin_delete(resource_uri=r["id"], linker_name=item).result()
+                bindings_to_delete = [binding for binding in [kafka_bootstrap_binding, kafka_registry_binding, item]  
+                                    if any(managed_binding.name == binding for managed_binding in managed_bindings)]  
+                
+                for binding in bindings_to_delete:  
+                    linker_client.linker.begin_delete(resource_uri=r["id"], linker_name=binding).result()  
+
 
         # Update managed bindings
         if self.get_argument_service_connectors_def_list() is not None:  
@@ -1546,7 +1561,20 @@ class ContainerAppPreviewUpdateDecorator(ContainerAppUpdateDecorator):
             for item in self.get_argument_service_connectors_def_list():  
                 while r["properties"]["provisioningState"].lower() == "inprogress":  
                     r = self.client.show(self.cmd, self.get_argument_resource_group_name(), self.get_argument_name())  
-                    time.sleep(1)  
+                    time.sleep(1)
+                service_connectors_def_list, service_bindings_def_list = parse_service_bindings(self.cmd,
+                                                                                            self.get_argument_service_bindings(),
+                                                                                            self.get_argument_resource_group_name(),
+                                                                                            self.get_argument_name())
+                self.set_argument_service_connectors_def_list(service_connectors_def_list)
+                if any(len(item["parameters"]) == 2 for item in service_connectors_def_list):    
+                    updated_service_connectors = update_connectors_with_two_parameters(item, service_connectors_def_list.copy(), r["id"])  
+                    check_bindings_and_raise_error(self.cmd, updated_service_connectors, service_bindings_def_list,  
+                                                self.get_argument_resource_group_name(), self.get_argument_name())  
+                else:  
+                    check_bindings_and_raise_error(self.cmd, service_connectors_def_list, service_bindings_def_list,  
+                                                self.get_argument_resource_group_name(), self.get_argument_name())
+                
 
                 def create_or_update(parameters, linker_name):  
                     linker_client.linker.begin_create_or_update(resource_uri=r["id"],  
