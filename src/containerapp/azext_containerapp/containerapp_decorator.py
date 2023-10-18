@@ -1339,6 +1339,8 @@ class ContainerAppPreviewCreateDecorator(ContainerAppCreateDecorator):
                                                                                             self.get_argument_resource_group_name(),
                                                                                             self.get_argument_name())
                 self.set_argument_service_connectors_def_list(service_connectors_def_list)
+
+                # Case: Kafka on confluent cloud with two linker operations. Validate uniqueness across all bindings
                 if any(len(item["parameters"]) == 2 for item in service_connectors_def_list):    
                     updated_service_connectors = update_connectors_with_two_parameters(item, service_connectors_def_list.copy(), r["id"])  
                     check_bindings_and_raise_error(self.cmd, updated_service_connectors, service_bindings_def_list,  
@@ -1346,7 +1348,6 @@ class ContainerAppPreviewCreateDecorator(ContainerAppCreateDecorator):
                 else:  
                     check_bindings_and_raise_error(self.cmd, service_connectors_def_list, service_bindings_def_list,  
                                                 self.get_argument_resource_group_name(), self.get_argument_name())
-
 
                 if len(item["parameters"]) == 1:
                     linker_create_or_update(linker_client=linker_client, r=r, parameters= item["parameters"][0], linker_name=item["linker_name"])    
@@ -1549,11 +1550,11 @@ class ContainerAppPreviewUpdateDecorator(ContainerAppUpdateDecorator):
                         delete_managed_binding(linker_client, r["id"], binding_name if binding_name != item else item)
 
         # Update managed bindings
-        if self.get_argument_service_connectors_def_list() is not None:  
-            linker_client = get_linker_client(self.cmd) if linker_client is None else linker_client  
-            for item in self.get_argument_service_connectors_def_list():  
-                while r["properties"]["provisioningState"].lower() == "inprogress":  
-                    r = self.client.show(self.cmd, self.get_argument_resource_group_name(), self.get_argument_name())  
+        if self.get_argument_service_connectors_def_list() is not None:
+            linker_client = get_linker_client(self.cmd) if linker_client is None else linker_client
+            for item in self.get_argument_service_connectors_def_list():
+                while r["properties"]["provisioningState"].lower() == "inprogress":
+                    r = self.client.show(self.cmd, self.get_argument_resource_group_name(), self.get_argument_name())
                     time.sleep(1)
                 service_connectors_def_list, service_bindings_def_list = parse_service_bindings(self.cmd,
                                                                                             self.get_argument_service_bindings(),
