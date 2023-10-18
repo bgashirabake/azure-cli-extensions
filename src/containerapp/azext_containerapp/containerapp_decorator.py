@@ -60,7 +60,7 @@ from ._utils import (_ensure_location_allowed,
                      safe_set, parse_metadata_flags, parse_auth_flags,
                      get_default_workload_profile_name_from_env,
                      ensure_workload_profile_supported, _generate_secret_volume_name,
-                     parse_service_bindings, check_unique_bindings, check_bindings_and_raise_error, update_connectors_with_two_parameters,
+                     parse_service_bindings, check_unique_bindings, check_bindings_and_raise_error, delete_managed_binding, update_connectors_with_two_parameters,
                      AppType, linker_create_or_update, get_linker_client, safe_get, _update_revision_env_secretrefs, _add_or_update_tags, _populate_secret_values,
                      clean_null_values, _add_or_update_env_vars, _remove_env_vars, _get_existing_secrets, _get_acr_cred)
 from ._validators import validate_create, validate_revision_suffix
@@ -1543,11 +1543,10 @@ class ContainerAppPreviewUpdateDecorator(ContainerAppUpdateDecorator):
                 kafka_registry_binding = f"{kafka_item}_schema_registry"
 
                 # Delete managed bindings
-                bindings_to_delete = [binding for binding in [kafka_bootstrap_binding, kafka_registry_binding, item]
-                                      if any(managed_binding.name == binding for managed_binding in managed_bindings)]  
-                
-                for binding in bindings_to_delete:
-                    linker_client.linker.begin_delete(resource_uri=r["id"], linker_name=binding).result()
+                for managed_binding in managed_bindings:
+                    binding_name = managed_binding.name
+                    if binding_name in {kafka_bootstrap_binding, kafka_registry_binding, item}:
+                        delete_managed_binding(linker_client, r["id"], binding_name if binding_name != item else item)
 
         # Update managed bindings
         if self.get_argument_service_connectors_def_list() is not None:  

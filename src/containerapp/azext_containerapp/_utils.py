@@ -432,6 +432,9 @@ def linker_create_or_update(linker_client, r, parameters, linker_name):
                                                 parameters=parameters,
                                                 linker_name=linker_name).result()
 
+def delete_managed_binding(linker_client, resource_id, binding_name):
+    linker_client.linker.begin_delete(resource_uri=resource_id, linker_name=binding_name).result()
+
 def check_bindings_and_raise_error(cmd, connectors, bindings, resource_group, name):
     unique_bindings = check_unique_bindings(cmd, connectors, bindings, resource_group, name)
     if not unique_bindings:

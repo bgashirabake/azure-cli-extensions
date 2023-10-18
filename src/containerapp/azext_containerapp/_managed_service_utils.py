@@ -238,10 +238,12 @@ class ManagedKafkaUtils:
 
     @staticmethod
     def build_kafka_service_binding_name(binding_name, arg_dict):
+        logger = get_logger(__name__)
         bootstrap_server_binding = "_bootstrap_server"
         registry_server_binding = "_schema_registry"
         binding_prefix = binding_name
         if '.' in binding_prefix:
+            logger.warning("Kafka on Confluent cloud binding names cannot contain periods ('.'). Removing '.' and generating binding name ...")
             binding_prefix = binding_prefix.replace('.', '')
         binding_name = (  
             f"{binding_prefix}{bootstrap_server_binding}.{binding_prefix}{registry_server_binding}"  
