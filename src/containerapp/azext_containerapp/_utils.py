@@ -547,21 +547,8 @@ def parse_service_bindings(cmd, service_bindings_list, resource_group_name, name
         service_name = service_binding[0]  
 
         is_kafka = service_name == "kafkaconfluent"  
-        bootstrap_server_binding = "_bootstrap_server."  
-        registry_server_binding = "_schema_registry"
-
-        if is_kafka:  
-            if len(service_binding) == 1:
-                binding_name = bootstrap_server_binding+registry_server_binding  
-            else:
-                binding_prefix = service_binding[1]
-                if '.' in service_binding[1]:
-                    logger.warning("The Binding Name for the Kafka on Confluent Cloud add-on can not contain periods '.'. Generating trimmed"  
-                                   " binding name ...")
-                    binding_prefix = service_binding[1].replace('.', '')
-                binding_name = f"{binding_prefix}{bootstrap_server_binding}{binding_prefix}{registry_server_binding}"  
-        else:  
-            binding_name = service_name if len(service_binding) == 1 else service_binding[1]
+  
+        binding_name = service_name if len(service_binding) == 1 else service_binding[1]
 
         if not validate_binding_name(binding_name):
             raise InvalidArgumentValueError("The Binding Name can only contain letters, numbers (0-9), periods ('.'), "
@@ -587,6 +574,7 @@ def parse_service_bindings(cmd, service_bindings_list, resource_group_name, name
         for item in resources:
             resource_list.append({"name": item.name, "type": item.type, "id": item.id})
         if is_kafka:
+            binding_name = ManagedKafkaUtils.build_kafka_service_binding_name(binding_name, arg_dict)
             resource_list.append({"name": "kafkaconfluent", "type": "Kafka on Confluent", "id": ""})
 
         subscription_id = get_subscription_id(cmd.cli_ctx)

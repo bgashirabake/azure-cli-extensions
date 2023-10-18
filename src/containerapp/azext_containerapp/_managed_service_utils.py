@@ -236,6 +236,16 @@ class ManagedKafkaUtils:
     }
         return [registry_parameters]
 
+    @staticmethod
+    def build_kafka_service_binding_name(binding_name, arg_dict):
+        bootstrap_server_binding = "_bootstrap_server"
+        registry_server_binding = "_schema_registry"
+        binding_prefix = binding_name
+        if '.' in binding_prefix:
+            binding_prefix = binding_prefix.replace('.', '')
+        binding_name = f"{binding_prefix}{bootstrap_server_binding}.{binding_prefix}{registry_server_binding}" if len(arg_dict) == 6 else f"{binding_prefix}{bootstrap_server_binding}"
+        return binding_name
+
     @staticmethod  
     def build_kafka_service_connector_def(arg_dict, name, binding_name):
         logger = get_logger(__name__)  
@@ -260,7 +270,9 @@ class ManagedKafkaUtils:
 
         if has_server_params:  
             server_parameters = ManagedKafkaUtils.build_kafka_server_params(name, arg_dict, key_vault_id=None)  
-        if has_server_params and has_registry_params:  
+        if has_server_params and has_registry_params:
+            if len(arg_dict) > 6:
+               logger.warning("More than the required arguments were provided. Only required arguments will be used. Proceeding with operation ...")
             registry_parameters = ManagedKafkaUtils.build_kafka_registry_params(name, arg_dict, key_vault_id=None)  
 
         parameters = server_parameters + registry_parameters  
