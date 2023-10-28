@@ -52,7 +52,9 @@ from ._models import (
 from ._decorator_utils import (create_deserializer,
                                process_loaded_yaml,
                                load_yaml_file)
-from ._utils import parse_service_bindings, check_unique_bindings
+from ._utils import (parse_service_bindings, check_unique_bindings, 
+                     check_bindings_and_raise_error, delete_managed_binding, 
+                     update_connectors_with_two_parameters, linker_create_or_update, get_linker_client) 
 from ._validators import validate_create
 
 from ._constants import (HELLO_WORLD_IMAGE,
@@ -727,9 +729,37 @@ class ContainerAppPreviewCreateDecorator(ContainerAppCreateDecorator):
                 while r is not None and r["properties"]["provisioningState"].lower() == "inprogress":
                     r = self.client.show(self.cmd, self.get_argument_resource_group_name(), self.get_argument_name())
                     time.sleep(1)
-                linker_client.linker.begin_create_or_update(resource_uri=r["id"],
-                                                            parameters=item["parameters"],
-                                                            linker_name=item["linker_name"]).result()
+
+                service_connectors_def_list, service_bindings_def_list = parse_service_bindings(
+                    self.cmd, self.get_argument_service_bindings(), self.get_argument_resource_group_name(), self.get_argument_name())
+                self.set_argument_service_connectors_def_list(
+                    service_connectors_def_list)
+
+                # Case: Kafka on confluent cloud with two linker operations.
+                if any(len(item["parameters"]) ==
+                       2 for item in service_connectors_def_list):
+                    service_connectors_def_list = update_connectors_with_two_parameters(
+                        item, service_connectors_def_list.copy(), r["id"])
+                # Validate uniqueness across all bindings
+                check_bindings_and_raise_error(
+                    self.cmd,
+                    service_connectors_def_list,
+                    service_bindings_def_list,
+                    self.get_argument_resource_group_name(),
+                    self.get_argument_name())
+
+                # Length of item["parameters"] list dictates how many linker operations are needed.
+                # Length 2 is for Kafka on Confluent Cloud bindings and length 1 is for all other bindings.
+                linker_names_list = item["linker_name"].split('.', len(item["parameters"]) - 1)
+                if len(item["parameters"]) != len(linker_names_list):
+                    continue
+                for i in range(len(item["parameters"])):
+                    linker_create_or_update(
+                        linker_client=linker_client,
+                        r=r,
+                        parameters=item["parameters"][i],
+                        linker_name=linker_names_list[i])
+
         if self.get_argument_repo():
             r = self._post_process_for_repo()
 
@@ -921,13 +951,26 @@ class ContainerAppPreviewUpdateDecorator(ContainerAppUpdateDecorator):
     def post_process(self, r):
         # Delete managed bindings
         linker_client = None
-        if self.get_argument_unbind_service_bindings():
+        unbind_service_bindings = self.get_argument_unbind_service_bindings()
+        if unbind_service_bindings:
             linker_client = get_linker_client(self.cmd)
-            for item in self.get_argument_unbind_service_bindings():
+            for item in unbind_service_bindings:
                 while r["properties"]["provisioningState"].lower() == "inprogress":
                     r = self.client.show(self.cmd, self.get_argument_resource_group_name(), self.get_argument_name())
                     time.sleep(1)
-                linker_client.linker.begin_delete(resource_uri=r["id"], linker_name=item).result()
+                # Get managed bindings
+                managed_bindings = linker_client.linker.list(resource_uri=r["id"])
+
+                # Update binding format for kafka bindings
+                kafka_item = item.replace('.', '')
+                kafka_bootstrap_binding = f"{kafka_item}_bootstrap_server"
+                kafka_registry_binding = f"{kafka_item}_schema_registry"
+
+                # Delete managed bindings
+                for managed_binding in managed_bindings:
+                    binding_name = managed_binding.name
+                    if binding_name in {kafka_bootstrap_binding, kafka_registry_binding, item}:
+                        delete_managed_binding(linker_client, r["id"], binding_name if binding_name != item else item)
 
         # Update managed bindings
         if self.get_argument_service_connectors_def_list() is not None:
@@ -936,9 +979,36 @@ class ContainerAppPreviewUpdateDecorator(ContainerAppUpdateDecorator):
                 while r["properties"]["provisioningState"].lower() == "inprogress":
                     r = self.client.show(self.cmd, self.get_argument_resource_group_name(), self.get_argument_name())
                     time.sleep(1)
-                linker_client.linker.begin_create_or_update(resource_uri=r["id"],
-                                                            parameters=item["parameters"],
-                                                            linker_name=item["linker_name"]).result()
+                service_connectors_def_list, service_bindings_def_list = parse_service_bindings(
+                    self.cmd, self.get_argument_service_bindings(), self.get_argument_resource_group_name(), self.get_argument_name())
+                self.set_argument_service_connectors_def_list(
+                    service_connectors_def_list)
+
+                # Case: Kafka on confluent cloud with two linker operations.
+                if any(len(item["parameters"]) ==
+                       2 for item in service_connectors_def_list):
+                    service_connectors_def_list = update_connectors_with_two_parameters(
+                        item, service_connectors_def_list.copy(), r["id"])
+
+                # Validate uniqueness across all bindings
+                check_bindings_and_raise_error(
+                    self.cmd,
+                    service_connectors_def_list,
+                    service_bindings_def_list,
+                    self.get_argument_resource_group_name(),
+                    self.get_argument_name())
+
+                # Length of item["parameters"] list dictates how many linker operations are needed.
+                # Length 2 is for Kafka on Confluent Cloud bindings and length 1 is for all other bindings.
+                linker_names_list = item["linker_name"].split('.', len(item["parameters"]) - 1)
+                if len(item["parameters"]) != len(linker_names_list):
+                    continue
+                for i in range(len(item["parameters"])):
+                    linker_create_or_update(
+                        linker_client=linker_client,
+                        r=r,
+                        parameters=item["parameters"][i],
+                        linker_name=linker_names_list[i])
         return r
 
     def set_up_service_bindings(self):

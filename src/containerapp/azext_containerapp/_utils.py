@@ -20,7 +20,7 @@ from urllib.request import urlopen
 from azure.cli.command_modules.containerapp._utils import safe_get, _ensure_location_allowed
 from azure.cli.command_modules.containerapp._client_factory import handle_raw_exception
 from azure.cli.core._profile import Profile
-from azure.cli.core.azclierror import (ValidationError, ResourceNotFoundError, CLIError, InvalidArgumentValueError)
+from azure.cli.core.azclierror import (ValidationError, ResourceNotFoundError, CLIError, InvalidArgumentValueError, CLIInternalError)
 from azure.cli.core.commands.client_factory import get_mgmt_service_client, get_subscription_id
 from azure.mgmt.resource import ResourceManagementClient
 from azure.mgmt.servicelinker import ServiceLinkerManagementClient
@@ -28,7 +28,7 @@ from azure.mgmt.servicelinker import ServiceLinkerManagementClient
 from knack.log import get_logger
 from msrestazure.tools import parse_resource_id, is_valid_resource_id
 
-from ._managed_service_utils import ManagedRedisUtils, ManagedCosmosDBUtils, ManagedPostgreSQLFlexibleUtils, ManagedMySQLFlexibleUtils
+from ._managed_service_utils import ManagedRedisUtils, ManagedCosmosDBUtils, ManagedPostgreSQLFlexibleUtils, ManagedMySQLFlexibleUtils, ManagedKafkaUtils
 from ._clients import ConnectedEnvCertificateClient, ContainerAppPreviewClient
 from ._client_factory import custom_location_client_factory, k8s_extension_client_factory, providers_client_factory
 from ._models import OryxRunImageTagProperty
@@ -64,6 +64,10 @@ def process_service(cmd, resource_list, service_name, arg_dict, subscription_id,
                     ManagedMySQLFlexibleUtils.build_mysql_service_connector_def(subscription_id, resource_group_name,
                                                                                 service_name, arg_dict,
                                                                                 name, binding_name))
+            elif service["type"] == "Kafka on Confluent":
+                service_connector_def_list.append(
+                    ManagedKafkaUtils.build_kafka_service_connector_def(arg_dict,
+                                                                        name, binding_name))
             elif service["type"] == "Microsoft.App/containerApps":
                 containerapp_def = ContainerAppPreviewClient.show(cmd=cmd, resource_group_name=resource_group_name, name=service_name)
 
@@ -94,6 +98,56 @@ def get_linker_client(cmd):
         subscription_id=get_subscription_id(cmd.cli_ctx), resource=resource)
     linker_client = ServiceLinkerManagementClient(credential)
     return linker_client
+
+
+def linker_create_or_update(linker_client, r, parameters, linker_name):
+    try:
+        result = linker_client.linker.begin_create_or_update(
+            resource_uri=r["id"],
+            parameters=parameters,
+            linker_name=linker_name).result()
+        return result
+    except Exception as e:
+        raise CLIInternalError("Bind operation failed.") from e
+
+
+def delete_managed_binding(linker_client, resource_id, binding_name):
+    try:
+        result = linker_client.linker.begin_delete(
+            resource_uri=resource_id,
+            linker_name=binding_name).result()
+        return result
+    except Exception as e:
+        raise CLIInternalError("Unbind operation failed.") from e
+
+
+def check_bindings_and_raise_error(
+        cmd,
+        connectors,
+        bindings,
+        resource_group,
+        name):
+    unique_bindings = check_unique_bindings(
+        cmd, connectors, bindings, resource_group, name)
+    if not unique_bindings:
+        raise ValidationError(
+            "Binding names across managed and dev services should be unique.")
+
+
+# Case: Kafka on Confluent Cloud bindings
+def update_connectors_with_two_parameters(item, connectors, resource_id):
+    connectors = [
+        item for item in connectors if not len(
+            item["parameters"]) == 2]
+    parameters_bootstrap_server, parameters_schema_registry = item["linker_name"].split(
+        '.', 1)
+    connectors.append({"linker_name": parameters_bootstrap_server,
+                       "parameters": item["parameters"][0],
+                       "resource_id": resource_id})
+    connectors.append({"linker_name": parameters_schema_registry,
+                       "parameters": item["parameters"][1],
+                       "resource_id": resource_id})
+    return connectors
 
 
 def validate_binding_name(binding_name):
@@ -161,10 +215,9 @@ def parse_service_bindings(cmd, service_bindings_list, resource_group_name, name
         service_binding = parts[0].split(':')
         service_name = service_binding[0]
 
-        if len(service_binding) == 1:
-            binding_name = service_name
-        else:
-            binding_name = service_binding[1]
+        is_kafka = service_name == "kafkaconfluent"
+
+        binding_name = service_name if len(service_binding) == 1 else service_binding[1]
 
         if not validate_binding_name(binding_name):
             raise InvalidArgumentValueError("The Binding Name can only contain letters, numbers (0-9), periods ('.'), "
@@ -189,6 +242,9 @@ def parse_service_bindings(cmd, service_bindings_list, resource_group_name, name
         resource_list = []
         for item in resources:
             resource_list.append({"name": item.name, "type": item.type, "id": item.id})
+        if is_kafka:
+            binding_name = ManagedKafkaUtils.build_kafka_service_binding_name(binding_name, arg_dict)
+            resource_list.append({"name": "kafkaconfluent", "type": "Kafka on Confluent", "id": ""})
 
         subscription_id = get_subscription_id(cmd.cli_ctx)
 

@@ -42,6 +42,11 @@ def load_arguments(self, _):
         c.argument('source', help="Local directory path containing the application source and Dockerfile for building the container image. Preview: If no Dockerfile is present, a container image is generated using buildpacks. If Docker is not running or buildpacks cannot be used, Oryx will be used to generate the image. See the supported Oryx runtimes here: https://aka.ms/SourceToCloudSupportedVersions.", is_preview=True)
 
     # Springboard
+    with self.argument_context('containerapp create', arg_group='Service Binding') as c:
+        c.argument('service_bindings', nargs='*', options_list=['--bind'], help="Space separated list of dev services(bindings) to be connected to this app. e.g. SVC_NAME1[:BIND_NAME1] SVC_NAME2[:BIND_NAME2]..."
+                   " For Managed Services ensure no space follows after the service type. Only one managed service can be bound to a container app in one bind operation."
+                   " The comma-separated arguments should have no spaces between them. e.g. SVC_NAME[:BIND_NAME1],arg1=arg1,arg2=arg2... For Managed Kafka, SVC_NAME is always kafkaconfluent")
+
     with self.argument_context('containerapp update', arg_group='Service Binding') as c:
         c.argument('service_bindings', nargs='*', options_list=['--bind'], help="Space separated list of services(bindings) to be connected to this app. e.g. SVC_NAME1[:BIND_NAME1] SVC_NAME2[:BIND_NAME2]...")
         c.argument('unbind_service_bindings', nargs='*', options_list=['--unbind'], help="Space separated list of services(bindings) to be removed from this app. e.g. BIND_NAME1...")
