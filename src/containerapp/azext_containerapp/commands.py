@@ -66,7 +66,11 @@ def load_command_table(self, _):
         g.custom_command('create', 'create_mariadb_service', supports_no_wait=True)
         g.custom_command('delete', 'delete_mariadb_service', confirmation=True, supports_no_wait=True)
 
-    with self.command_group('containerapp service qdrant') as g:
+    with self.command_group('containerapp service qdrant', deprecate_info= self.deprecate(redirect='containerapp addon qdrant', hide=True)) as g:
+        g.custom_command('create', 'create_qdrant_service', supports_no_wait=True)
+        g.custom_command('delete', 'delete_qdrant_service', confirmation=True, supports_no_wait=True)
+
+    with self.command_group('containerapp addon qdrant') as g:
         g.custom_command('create', 'create_qdrant_service', supports_no_wait=True)
         g.custom_command('delete', 'delete_qdrant_service', confirmation=True, supports_no_wait=True)
 
