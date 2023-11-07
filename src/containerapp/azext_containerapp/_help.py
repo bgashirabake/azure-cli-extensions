@@ -108,12 +108,21 @@ helps['containerapp env create'] = """
 helps['containerapp service'] = """
     type: group
     short-summary: Commands to manage services available within the environment.
+<<<<<<< HEAD
     deprecate_info: This command group is deprecated. Use 'az containerapp add-on' instead.
 """
 
 helps['containerapp add-on'] = """
     type: group
     short-summary: Commands to manage add-ons available within the environment.
+=======
+    deprecate_info: This command group is deprecated. Use 'az containerapp addon' instead.
+"""
+
+helps['containerapp addon'] = """
+    type: group
+    short-summary: Commands to manage addons available within the environment.
+>>>>>>> 9d479eb49 (add)
 """
 
 helps['containerapp service list'] = """
@@ -121,9 +130,15 @@ helps['containerapp service list'] = """
     short-summary: List all services within the environment.
 """
 
+<<<<<<< HEAD
 helps['containerapp add-on list'] = """
     type: command
     short-summary: List all add-ons within the environment.
+=======
+helps['containerapp addon list'] = """
+    type: command
+    short-summary: List all addons within the environment.
+>>>>>>> 9d479eb49 (add)
 """
 
 helps['containerapp service redis'] = """
@@ -201,6 +216,7 @@ helps['containerapp service qdrant delete'] = """
     short-summary: Command to delete the qdrant service.
 """
 
+<<<<<<< HEAD
 helps['containerapp add-on redis'] = """
     type: group
     short-summary: Commands to manage the redis add-on for the Container Apps environment.
@@ -274,6 +290,81 @@ helps['containerapp add-on mariadb delete'] = """
 helps['containerapp add-on qdrant delete'] = """
     type: command
     short-summary: Command to delete the qdrant add-on.
+=======
+helps['containerapp addon redis'] = """
+    type: group
+    short-summary: Commands to manage the redis addon for the Container Apps environment.
+"""
+
+helps['containerapp addon postgres'] = """
+    type: group
+    short-summary: Commands to manage the postgres addon for the Container Apps environment.
+"""
+
+helps['containerapp addon kafka'] = """
+    type: group
+    short-summary: Commands to manage the kafka addon for the Container Apps environment.
+"""
+
+helps['containerapp addon mariadb'] = """
+    type: group
+    short-summary: Commands to manage the mariadb addon for the Container Apps environment.
+"""
+
+helps['containerapp addon qdrant'] = """
+    type: group
+    short-summary: Commands to manage the qdrant addon for the Container Apps environment.
+"""
+
+helps['containerapp addon redis create'] = """
+    type: command
+    short-summary: Command to create the redis addon.
+"""
+
+helps['containerapp addon postgres create'] = """
+    type: command
+    short-summary: Command to create the postgres addon.
+"""
+
+helps['containerapp addon kafka create'] = """
+    type: command
+    short-summary: Command to create the kafka addon.
+"""
+
+helps['containerapp addon mariadb create'] = """
+    type: command
+    short-summary: Command to create the mariadb addon.
+"""
+
+helps['containerapp addon qdrant create'] = """
+    type: command
+    short-summary: Command to create the qdrant addon.
+"""
+
+helps['containerapp addon redis delete'] = """
+    type: command
+    short-summary: Command to delete the redis addon.
+"""
+
+helps['containerapp addon postgres delete'] = """
+    type: command
+    short-summary: Command to delete the postgres addon.
+"""
+
+helps['containerapp addon kafka delete'] = """
+    type: command
+    short-summary: Command to delete the kafka addon.
+"""
+
+helps['containerapp addon mariadb delete'] = """
+    type: command
+    short-summary: Command to delete the mariadb addon.
+"""
+
+helps['containerapp addon qdrant delete'] = """
+    type: command
+    short-summary: Command to delete the qdrant addon.
+>>>>>>> 9d479eb49 (add)
 """
 
 helps['containerapp env update'] = """
