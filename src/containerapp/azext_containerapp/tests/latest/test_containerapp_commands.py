@@ -13,8 +13,6 @@ from azure.cli.core.azclierror import ValidationError
 from azure.cli.testsdk.scenario_tests import AllowLargeResponse, live_only
 from azure.cli.testsdk import (ScenarioTest, ResourceGroupPreparer, JMESPathCheck)
 from msrestazure.tools import parse_resource_id
-from _dev_service_utils import addon_provisioningState_check
-from _constants import DEV_SERVICE_LIST
 
 from azext_containerapp.tests.latest.common import (write_test_file, clean_up_test_file)
 from .common import TEST_LOCATION
@@ -797,6 +795,7 @@ class ContainerappServiceBindingTests(ScenarioTest):
         mariadb_ca_name = 'mariadb'
         qdrant_ca_name = "qdrant"
 <<<<<<< HEAD
+<<<<<<< HEAD
         ADDON_LIST = ["redis", "postgres", "kafka", "mariadb", "qdrant"]
         create_containerapp_env(self, env_name, resource_group)
 
@@ -825,6 +824,9 @@ class ContainerappServiceBindingTests(ScenarioTest):
             JMESPathCheck('properties.template.serviceBinds[1].name', "redis")
 =======
 
+=======
+        ADDON_LIST = ["redis", "postgres", "kafka", "mariadb", "qdrant"]
+>>>>>>> d7f7919fe (recordings)
         create_containerapp_env(self, env_name, resource_group)
 
         self.cmd('containerapp addon redis create -g {} -n {} --environment {}'.format(
@@ -842,34 +844,48 @@ class ContainerappServiceBindingTests(ScenarioTest):
         self.cmd('containerapp addon qdrant create -g {} -n {} --environment {}'.format(
             resource_group, qdrant_ca_name, env_name))
 
-        for addon in DEV_SERVICE_LIST:
-            addon_provisioningState_check(self, addon_name=addon, resource_group=resource_group)
+        for addon in ADDON_LIST:
+            self.cmd(f'containerapp show -g {resource_group} -n {addon}', checks=[
+                JMESPathCheck("properties.provisioningState", "Succeeded")])
 
         self.cmd('containerapp create -g {} -n {} --environment {} --image {} --bind postgres:postgres_binding redis'.format(
             resource_group, ca_name, env_name, image), checks=[
+<<<<<<< HEAD
             JMESPathCheck('properties.template.addonBinds[0].name', "postgres_binding"),
             JMESPathCheck('properties.template.addonBinds[1].name', "redis")
 >>>>>>> 9d479eb49 (add)
+=======
+            JMESPathCheck('properties.template.serviceBinds[0].name', "postgres_binding"),
+            JMESPathCheck('properties.template.serviceBinds[1].name', "redis")
+>>>>>>> d7f7919fe (recordings)
         ])
 
         self.cmd('containerapp update -g {} -n {} --unbind postgres_binding'.format(
             resource_group, ca_name, image), checks=[
 <<<<<<< HEAD
+<<<<<<< HEAD
             JMESPathCheck('properties.template.serviceBinds[0].name', "redis"),
 =======
             JMESPathCheck('properties.template.addonBinds[0].name', "redis"),
 >>>>>>> 9d479eb49 (add)
+=======
+            JMESPathCheck('properties.template.serviceBinds[0].name', "redis"),
+>>>>>>> d7f7919fe (recordings)
         ])
 
         self.cmd('containerapp update -g {} -n {} --bind postgres:postgres_binding kafka mariadb qdrant'.format(
             resource_group, ca_name, image), checks=[
             JMESPathCheck("properties.provisioningState", "Succeeded"),
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> d7f7919fe (recordings)
             JMESPathCheck('properties.template.serviceBinds[0].name', "redis"),
             JMESPathCheck('properties.template.serviceBinds[1].name', "postgres_binding"),
             JMESPathCheck('properties.template.serviceBinds[2].name', "kafka"),
             JMESPathCheck('properties.template.serviceBinds[3].name', "mariadb"),
             JMESPathCheck('properties.template.serviceBinds[4].name', "qdrant")
+<<<<<<< HEAD
         ])
 
         self.cmd('containerapp add-on postgres delete -g {} -n {} --yes'.format(
@@ -891,6 +907,8 @@ class ContainerappServiceBindingTests(ScenarioTest):
             JMESPathCheck('properties.template.addonBinds[2].name', "kafka"),
             JMESPathCheck('properties.template.addonBinds[3].name', "mariadb"),
             JMESPathCheck('properties.template.addonBinds[4].name', "qdrant")
+=======
+>>>>>>> d7f7919fe (recordings)
         ])
 
         self.cmd('containerapp addon postgres delete -g {} -n {} --yes'.format(
