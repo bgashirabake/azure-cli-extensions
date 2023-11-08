@@ -51,6 +51,7 @@ def load_command_table(self, _):
         g.custom_command('init', 'init_dapr_components', is_preview=True)
 
 <<<<<<< HEAD
+<<<<<<< HEAD
     with self.command_group('containerapp service', deprecate_info=self.deprecate(redirect='containerapp add-on', hide=True), is_preview=True) as g:
         g.custom_command('list', 'list_all_services')
 
@@ -96,12 +97,15 @@ def load_command_table(self, _):
     with self.command_group('containerapp add-on qdrant') as g:
 =======
     with self.command_group('containerapp service', deprecate_info= self.deprecate(redirect='containerapp addon', hide=True), is_preview=True) as g:
+=======
+    with self.command_group('containerapp service', deprecate_info=self.deprecate(redirect='containerapp addon', hide=True), is_preview=True) as g:
+>>>>>>> 6fbd6b754 (recordings live)
         g.custom_command('list', 'list_all_services')
 
-    with self.command_group('containerapp addon',  is_preview=True) as g:
+    with self.command_group('containerapp addon', is_preview=True) as g:
         g.custom_command('list', 'list_all_services')
 
-    with self.command_group('containerapp service redis', deprecate_info= self.deprecate(redirect='containerapp addon redis', hide=True)) as g:
+    with self.command_group('containerapp service redis', deprecate_info=self.deprecate(redirect='containerapp addon redis', hide=True)) as g:
         g.custom_command('create', 'create_redis_service', supports_no_wait=True)
         g.custom_command('delete', 'delete_redis_service', confirmation=True, supports_no_wait=True)
 
@@ -109,7 +113,7 @@ def load_command_table(self, _):
         g.custom_command('create', 'create_redis_service', supports_no_wait=True)
         g.custom_command('delete', 'delete_redis_service', confirmation=True, supports_no_wait=True)
 
-    with self.command_group('containerapp service postgres', deprecate_info= self.deprecate(redirect='containerapp addon postgres', hide=True)) as g:
+    with self.command_group('containerapp service postgres', deprecate_info=self.deprecate(redirect='containerapp addon postgres', hide=True)) as g:
         g.custom_command('create', 'create_postgres_service', supports_no_wait=True)
         g.custom_command('delete', 'delete_postgres_service', confirmation=True, supports_no_wait=True)
 
@@ -117,7 +121,7 @@ def load_command_table(self, _):
         g.custom_command('create', 'create_postgres_service', supports_no_wait=True)
         g.custom_command('delete', 'delete_postgres_service', confirmation=True, supports_no_wait=True)
 
-    with self.command_group('containerapp service kafka', deprecate_info= self.deprecate(redirect='containerapp addon kafka', hide=True)) as g:
+    with self.command_group('containerapp service kafka', deprecate_info=self.deprecate(redirect='containerapp addon kafka', hide=True)) as g:
         g.custom_command('create', 'create_kafka_service', supports_no_wait=True)
         g.custom_command('delete', 'delete_kafka_service', confirmation=True, supports_no_wait=True)
 
@@ -125,7 +129,7 @@ def load_command_table(self, _):
         g.custom_command('create', 'create_kafka_service', supports_no_wait=True)
         g.custom_command('delete', 'delete_kafka_service', confirmation=True, supports_no_wait=True)
 
-    with self.command_group('containerapp service mariadb', deprecate_info= self.deprecate(redirect='containerapp addon mariadb', hide=True)) as g:
+    with self.command_group('containerapp service mariadb', deprecate_info=self.deprecate(redirect='containerapp addon mariadb', hide=True)) as g:
         g.custom_command('create', 'create_mariadb_service', supports_no_wait=True)
         g.custom_command('delete', 'delete_mariadb_service', confirmation=True, supports_no_wait=True)
 
@@ -133,7 +137,7 @@ def load_command_table(self, _):
         g.custom_command('create', 'create_mariadb_service', supports_no_wait=True)
         g.custom_command('delete', 'delete_mariadb_service', confirmation=True, supports_no_wait=True)
 
-    with self.command_group('containerapp service qdrant', deprecate_info= self.deprecate(redirect='containerapp addon qdrant', hide=True)) as g:
+    with self.command_group('containerapp service qdrant', deprecate_info=self.deprecate(redirect='containerapp addon qdrant', hide=True)) as g:
         g.custom_command('create', 'create_qdrant_service', supports_no_wait=True)
         g.custom_command('delete', 'delete_qdrant_service', confirmation=True, supports_no_wait=True)
 
