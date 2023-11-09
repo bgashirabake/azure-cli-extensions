@@ -800,6 +800,7 @@ class ContainerappServiceBindingTests(ScenarioTest):
         create_containerapp_env(self, env_name, resource_group)
 
         self.cmd('containerapp add-on redis create -g {} -n {} --environment {}'.format(
+<<<<<<< HEAD
             resource_group, redis_ca_name, env_name))
 
         self.cmd('containerapp add-on postgres create -g {} -n {} --environment {}'.format(
@@ -830,18 +831,20 @@ class ContainerappServiceBindingTests(ScenarioTest):
         create_containerapp_env(self, env_name, resource_group)
 
         self.cmd('containerapp addon redis create -g {} -n {} --environment {}'.format(
+=======
+>>>>>>> a9dc64ae6 (add-on)
             resource_group, redis_ca_name, env_name))
 
-        self.cmd('containerapp addon postgres create -g {} -n {} --environment {}'.format(
+        self.cmd('containerapp add-on postgres create -g {} -n {} --environment {}'.format(
             resource_group, postgres_ca_name, env_name))
 
-        self.cmd('containerapp addon kafka create -g {} -n {} --environment {}'.format(
+        self.cmd('containerapp add-on kafka create -g {} -n {} --environment {}'.format(
             resource_group, kafka_ca_name, env_name))
 
-        self.cmd('containerapp addon mariadb create -g {} -n {} --environment {}'.format(
+        self.cmd('containerapp add-on mariadb create -g {} -n {} --environment {}'.format(
             resource_group, mariadb_ca_name, env_name))
 
-        self.cmd('containerapp addon qdrant create -g {} -n {} --environment {}'.format(
+        self.cmd('containerapp add-on qdrant create -g {} -n {} --environment {}'.format(
             resource_group, qdrant_ca_name, env_name))
 
         for addon in ADDON_LIST:
@@ -911,29 +914,37 @@ class ContainerappServiceBindingTests(ScenarioTest):
 >>>>>>> d7f7919fe (recordings)
         ])
 
-        self.cmd('containerapp addon postgres delete -g {} -n {} --yes'.format(
+        self.cmd('containerapp add-on postgres delete -g {} -n {} --yes'.format(
             resource_group, postgres_ca_name, env_name))
 
-        self.cmd('containerapp addon redis delete -g {} -n {} --yes'.format(
+        self.cmd('containerapp add-on redis delete -g {} -n {} --yes'.format(
             resource_group, redis_ca_name, env_name))
 
-        self.cmd('containerapp addon kafka delete -g {} -n {} --yes'.format(
+        self.cmd('containerapp add-on kafka delete -g {} -n {} --yes'.format(
             resource_group, kafka_ca_name, env_name))
 
-        self.cmd('containerapp addon mariadb delete -g {} -n {} --yes'.format(
+        self.cmd('containerapp add-on mariadb delete -g {} -n {} --yes'.format(
             resource_group, mariadb_ca_name, env_name))
 
+<<<<<<< HEAD
         self.cmd('containerapp addon qdrant delete -g {} -n {} --yes'.format(
 >>>>>>> 9d479eb49 (add)
+=======
+        self.cmd('containerapp add-on qdrant delete -g {} -n {} --yes'.format(
+>>>>>>> a9dc64ae6 (add-on)
             resource_group, qdrant_ca_name, env_name))
 
         self.cmd(f'containerapp delete -g {resource_group} -n {ca_name} --yes')
 
 <<<<<<< HEAD
+<<<<<<< HEAD
         self.cmd('containerapp add-on list -g {} --environment {}'.format(resource_group, env_name), checks=[
 =======
         self.cmd('containerapp addon list -g {} --environment {}'.format(resource_group, env_name), checks=[
 >>>>>>> 9d479eb49 (add)
+=======
+        self.cmd('containerapp add-on list -g {} --environment {}'.format(resource_group, env_name), checks=[
+>>>>>>> a9dc64ae6 (add-on)
             JMESPathCheck('length(@)', 0),
         ])
 

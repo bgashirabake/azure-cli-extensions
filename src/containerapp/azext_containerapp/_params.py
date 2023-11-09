@@ -61,10 +61,14 @@ def load_arguments(self, _):
         c.argument('resource_group_name', arg_type=resource_group_name_type, id_part=None)
 
 <<<<<<< HEAD
+<<<<<<< HEAD
     with self.argument_context('containerapp add-on') as c:
 =======
     with self.argument_context('containerapp addon') as c:
 >>>>>>> 9d479eb49 (add)
+=======
+    with self.argument_context('containerapp add-on') as c:
+>>>>>>> a9dc64ae6 (add-on)
         c.argument('service_name', options_list=['--name', '-n'], help="The service name.")
         c.argument('environment_name', options_list=['--environment'], help="The environment name.")
         c.argument('resource_group_name', arg_type=resource_group_name_type, id_part=None)
