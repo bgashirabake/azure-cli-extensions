@@ -95,6 +95,10 @@ def load_command_table(self, _):
         g.custom_command('create', 'create_qdrant_service', supports_no_wait=True)
         g.custom_command('delete', 'delete_qdrant_service', confirmation=True, supports_no_wait=True)
 
+    with self.command_group('containerapp service chroma', deprecate_info=self.deprecate(redirect='containerapp add-on chroma', hide=True)) as g:
+        g.custom_command('create', 'create_chroma_service', supports_no_wait=True)
+        g.custom_command('delete', 'delete_chroma_service', confirmation=True, supports_no_wait=True)
+
     with self.command_group('containerapp add-on qdrant') as g:
 =======
     with self.command_group('containerapp service', deprecate_info= self.deprecate(redirect='containerapp addon', hide=True), is_preview=True) as g:
@@ -153,6 +157,10 @@ def load_command_table(self, _):
 >>>>>>> a9dc64ae6 (add-on)
         g.custom_command('create', 'create_qdrant_service', supports_no_wait=True)
         g.custom_command('delete', 'delete_qdrant_service', confirmation=True, supports_no_wait=True)
+
+    with self.command_group('containerapp add-on chroma') as g:
+        g.custom_command('create', 'create_chroma_service', supports_no_wait=True)
+        g.custom_command('delete', 'delete_chroma_service', confirmation=True, supports_no_wait=True)
 
     with self.command_group('containerapp github-action') as g:
         g.custom_command('add', 'create_or_update_github_action', exception_handler=ex_handler_factory())

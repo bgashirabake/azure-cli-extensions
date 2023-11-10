@@ -4,6 +4,7 @@ Release History
 ===============
 upcoming
 ++++++
+* 'az containerapp add-on chroma': support for chroma add-on
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD

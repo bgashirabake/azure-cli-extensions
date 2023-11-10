@@ -716,6 +716,7 @@ class ContainerappServiceBindingTests(ScenarioTest):
         kafka_ca_name = 'kafka'
         mariadb_ca_name = 'mariadb'
         qdrant_ca_name = "qdrant"
+        chroma_ca_name = "chroma"
 
         create_containerapp_env(self, env_name, resource_group)
 
@@ -734,6 +735,9 @@ class ContainerappServiceBindingTests(ScenarioTest):
         self.cmd('containerapp service qdrant create -g {} -n {} --environment {}'.format(
             resource_group, qdrant_ca_name, env_name))
 
+        self.cmd('containerapp service chroma create -g {} -n {} --environment {}'.format(
+            resource_group, chroma_ca_name, env_name))
+
         self.cmd('containerapp create -g {} -n {} --environment {} --image {} --bind postgres:postgres_binding redis'.format(
             resource_group, ca_name, env_name, image), checks=[
             JMESPathCheck('properties.template.serviceBinds[0].name', "postgres_binding"),
@@ -745,13 +749,14 @@ class ContainerappServiceBindingTests(ScenarioTest):
             JMESPathCheck('properties.template.serviceBinds[0].name', "redis"),
         ])
 
-        self.cmd('containerapp update -g {} -n {} --bind postgres:postgres_binding kafka mariadb qdrant'.format(
+        self.cmd('containerapp update -g {} -n {} --bind postgres:postgres_binding kafka mariadb qdrant chroma'.format(
             resource_group, ca_name, image), checks=[
             JMESPathCheck('properties.template.serviceBinds[0].name', "redis"),
             JMESPathCheck('properties.template.serviceBinds[1].name', "postgres_binding"),
             JMESPathCheck('properties.template.serviceBinds[2].name', "kafka"),
             JMESPathCheck('properties.template.serviceBinds[3].name', "mariadb"),
-            JMESPathCheck('properties.template.serviceBinds[4].name', "qdrant")
+            JMESPathCheck('properties.template.serviceBinds[4].name', "qdrant"),
+            JMESPathCheck('properties.template.serviceBinds[5].name', "chroma")
         ])
 
         self.cmd('containerapp service postgres delete -g {} -n {} --yes'.format(
@@ -768,6 +773,9 @@ class ContainerappServiceBindingTests(ScenarioTest):
 
         self.cmd('containerapp service qdrant delete -g {} -n {} --yes'.format(
             resource_group, qdrant_ca_name, env_name))
+
+        self.cmd('containerapp service chroma delete -g {} -n {} --yes'.format(
+            resource_group, chroma_ca_name, env_name))
 
         self.cmd(f'containerapp delete -g {resource_group} -n {ca_name} --yes')
 
@@ -794,9 +802,10 @@ class ContainerappServiceBindingTests(ScenarioTest):
         kafka_ca_name = 'kafka'
         mariadb_ca_name = 'mariadb'
         qdrant_ca_name = "qdrant"
+        chroma_ca_name = "chroma"
 <<<<<<< HEAD
 <<<<<<< HEAD
-        ADDON_LIST = ["redis", "postgres", "kafka", "mariadb", "qdrant"]
+        ADDON_LIST = ["redis", "postgres", "kafka", "mariadb", "qdrant", "chroma"]
         create_containerapp_env(self, env_name, resource_group)
 
         self.cmd('containerapp add-on redis create -g {} -n {} --environment {}'.format(
@@ -814,6 +823,9 @@ class ContainerappServiceBindingTests(ScenarioTest):
 
         self.cmd('containerapp add-on qdrant create -g {} -n {} --environment {}'.format(
             resource_group, qdrant_ca_name, env_name))
+
+        self.cmd('containerapp add-on chroma create -g {} -n {} --environment {}'.format(
+            resource_group, chroma_ca_name, env_name))
 
         for addon in ADDON_LIST:
             self.cmd(f'containerapp show -g {resource_group} -n {addon}', checks=[
@@ -876,7 +888,7 @@ class ContainerappServiceBindingTests(ScenarioTest):
 >>>>>>> d7f7919fe (recordings)
         ])
 
-        self.cmd('containerapp update -g {} -n {} --bind postgres:postgres_binding kafka mariadb qdrant'.format(
+        self.cmd('containerapp update -g {} -n {} --bind postgres:postgres_binding kafka mariadb qdrant chroma'.format(
             resource_group, ca_name, image), checks=[
             JMESPathCheck("properties.provisioningState", "Succeeded"),
 <<<<<<< HEAD
@@ -888,7 +900,6 @@ class ContainerappServiceBindingTests(ScenarioTest):
             JMESPathCheck('properties.template.serviceBinds[2].name', "kafka"),
             JMESPathCheck('properties.template.serviceBinds[3].name', "mariadb"),
             JMESPathCheck('properties.template.serviceBinds[4].name', "qdrant")
-<<<<<<< HEAD
         ])
 
         self.cmd('containerapp add-on postgres delete -g {} -n {} --yes'.format(
@@ -933,6 +944,9 @@ class ContainerappServiceBindingTests(ScenarioTest):
         self.cmd('containerapp add-on qdrant delete -g {} -n {} --yes'.format(
 >>>>>>> a9dc64ae6 (add-on)
             resource_group, qdrant_ca_name, env_name))
+
+        self.cmd('containerapp add-on chroma delete -g {} -n {} --yes'.format(
+            resource_group, chroma_ca_name, env_name))
 
         self.cmd(f'containerapp delete -g {resource_group} -n {ca_name} --yes')
 
