@@ -1191,14 +1191,21 @@ class ContainerappServiceBindingTests(ScenarioTest):
         if format_location(location) == format_location(STAGE_LOCATION):
             location = "eastus"
         self.cmd('configure --defaults location={}'.format(location))
+        kafka_arguments = []
+        for _ in range(6):
+            kafka_arguments.append(self.create_random_name(prefix='kafka', length=12))
 
-        env_name = self.create_random_name(prefix='containerapp-env', length=24)
+        env_id = prepare_containerapp_env_for_app_e2e_tests(self, location=location)
+        env_rg = parse_resource_id(env_id).get('resource_group')
+        env_name = parse_resource_id(env_id).get('name')
+
+        #env_name = self.create_random_name(prefix='containerapp-env', length=24)
         ca_name = self.create_random_name(prefix='containerapp', length=24)
         mysqlserver = "mysqlflexsb"
         postgresqlserver = "postgresqlflexsb"
 
-        mysqlflex_json= self.cmd('mysql flexible-server create --resource-group {} --name {} --public-access {} -y'.format(resource_group, mysqlserver, "None")).output
-        postgresqlflex_json= self.cmd('postgres flexible-server create --resource-group {} --name {} --public-access {} -y'.format(resource_group, postgresqlserver, "None")).output
+        mysqlflex_json= self.cmd('mysql flexible-server create --resource-group {} --name {} --public-access {} -y'.format(env_rg, mysqlserver, "None")).output
+        postgresqlflex_json= self.cmd('postgres flexible-server create --resource-group {} --name {} --public-access {} -y'.format(env_rg, postgresqlserver, "None")).output
         mysqlflex_dict = json.loads(mysqlflex_json)
 
         mysqlusername = mysqlflex_dict['username']
@@ -1210,25 +1217,24 @@ class ContainerappServiceBindingTests(ScenarioTest):
         postgresqlusername = postgresqlflex_dict['username']
         postgresqlpassword = postgresqlflex_dict['password']
         postgresqldb = postgresqlflex_dict['databaseName']
-        create_containerapp_env(self, env_name, resource_group)
 
         self.cmd('containerapp create -g {} -n {} --environment {} --bind {}:{},database={},username={},password={}'.format(
-            resource_group, ca_name, env_name, mysqlserver, flex_binding, mysqldb , mysqlusername, mysqlpassword))
-        self.cmd('containerapp show -g {} -n {}'.format(resource_group, ca_name), checks=[
+            env_rg, ca_name, env_name, mysqlserver, flex_binding, mysqldb , mysqlusername, mysqlpassword))
+        self.cmd('containerapp show -g {} -n {}'.format(env_rg, ca_name), checks=[
             JMESPathCheck("properties.provisioningState", "Succeeded"),
             JMESPathCheck('length(properties.template.containers[0].env[?name==`AZURE_MYSQL_HOST`])', 1)
         ])
 
         self.cmd('containerapp update -g {} -n {} --bind {},database={},username={},password={}'.format(
-            resource_group, ca_name, postgresqlserver, postgresqldb , postgresqlusername, postgresqlpassword))
-        self.cmd('containerapp show -g {} -n {}'.format(resource_group, ca_name), checks=[
+            env_rg, ca_name, postgresqlserver, postgresqldb , postgresqlusername, postgresqlpassword))
+        self.cmd('containerapp show -g {} -n {}'.format(env_rg, ca_name), checks=[
             JMESPathCheck("properties.provisioningState", "Succeeded"),
             JMESPathCheck('length(properties.template.containers[0].env[?name==`AZURE_MYSQL_HOST`])', 1),
             JMESPathCheck('length(properties.template.containers[0].env[?name==`AZURE_POSTGRESQL_HOST`])', 1)
         ])
         self.cmd('containerapp update -g {} -n {} --bind kafkaconfluent,bootstrap_server={},kafka_key={},kafka_secret={}'.format(
-            resource_group, ca_name, kafka_arguments[0], kafka_arguments[1] , kafka_arguments[2]))
-        self.cmd('containerapp show -g {} -n {}'.format(resource_group, ca_name), checks=[
+            env_rg, ca_name, kafka_arguments[0], kafka_arguments[1] , kafka_arguments[2]))
+        self.cmd('containerapp show -g {} -n {}'.format(env_rg, ca_name), checks=[
             JMESPathCheck("properties.provisioningState", "Succeeded"),
             JMESPathCheck('length(properties.template.containers[0].env[?name==`AZURE_MYSQL_HOST`])', 1),
             JMESPathCheck('length(properties.template.containers[0].env[?name==`AZURE_POSTGRESQL_HOST`])', 1),
@@ -1237,8 +1243,8 @@ class ContainerappServiceBindingTests(ScenarioTest):
             JMESPathCheck('length(properties.template.containers[0].env[?name==`CONFLUENTCLOUD_KAFKA_SASLPASSWORD`])', 1)
         ])
         self.cmd('containerapp update -g {} -n {} --unbind kafkaconfluent'.format(
-            resource_group, ca_name))
-        self.cmd('containerapp show -g {} -n {}'.format(resource_group, ca_name), checks=[
+            env_rg, ca_name))
+        self.cmd('containerapp show -g {} -n {}'.format(env_rg, ca_name), checks=[
             JMESPathCheck("properties.provisioningState", "Succeeded"),
             JMESPathCheck('length(properties.template.containers[0].env[?name==`AZURE_MYSQL_HOST`])', 1),
             JMESPathCheck('length(properties.template.containers[0].env[?name==`AZURE_POSTGRESQL_HOST`])', 1),
@@ -1247,9 +1253,9 @@ class ContainerappServiceBindingTests(ScenarioTest):
             JMESPathCheck('length(properties.template.containers[0].env[?name==`CONFLUENTCLOUD_KAFKA_SASLPASSWORD`])', 0)
         ])
         self.cmd('containerapp update -g {} -n {} --bind kafkaconfluent:kafka.binding,bootstrap_server={},kafka_key={},kafka_secret={}'
-                 ',schema_registry={},schema_key={},schema_secret={}'.format(resource_group, ca_name, kafka_arguments[0], kafka_arguments[1]
+                 ',schema_registry={},schema_key={},schema_secret={}'.format(env_rg, ca_name, kafka_arguments[0], kafka_arguments[1]
                                                                              , kafka_arguments[2], kafka_arguments[3], kafka_arguments[4], kafka_arguments[5]))
-        self.cmd('containerapp show -g {} -n {}'.format(resource_group, ca_name), checks=[
+        self.cmd('containerapp show -g {} -n {}'.format(env_rg, ca_name), checks=[
             JMESPathCheck("properties.provisioningState", "Succeeded"),
             JMESPathCheck('length(properties.template.containers[0].env[?name==`CONFLUENTCLOUD_KAFKA_BOOTSTRAPSERVER`])', 1),
             JMESPathCheck('length(properties.template.containers[0].env[?name==`CONFLUENTCLOUD_KAFKA_SASLUSERNAME`])', 1),
@@ -1257,11 +1263,11 @@ class ContainerappServiceBindingTests(ScenarioTest):
             JMESPathCheck('length(properties.template.containers[0].env[?name==`CONFLUENTCLOUD_SCHEMAREGISTRY_URL`])', 1),
             JMESPathCheck('length(properties.template.containers[0].env[?name==`CONFLUENTCLOUD_SCHEMAREGISTRY_USERINFO`])', 1)
         ])
-        self.cmd(f'containerapp delete -g {resource_group} -n {ca_name} --yes')
-        self.cmd('containerapp list -g {} --environment {}'.format(resource_group, env_name), checks=[
+        self.cmd(f'containerapp delete -g {env_rg} -n {ca_name} --yes')
+        self.cmd('containerapp list -g {} --environment {}'.format(env_rg, env_name), checks=[
             JMESPathCheck('length(@)', 0),
         ])
-        self.cmd(f'containerapp env delete -g {resource_group} -n {env_name} --yes')
+        self.cmd(f'containerapp env delete -g {env_rg} -n {env_name} --yes')
 
 
 class ContainerappEnvStorageTests(ScenarioTest):
