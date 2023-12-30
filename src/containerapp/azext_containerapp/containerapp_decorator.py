@@ -1129,6 +1129,7 @@ class ContainerAppPreviewUpdateDecorator(ContainerAppUpdateDecorator):
             linker_client = get_linker_client(self.cmd)
 
             service_connectors_def_list, service_bindings_def_list = parse_service_bindings(self.cmd, self.get_argument_service_bindings(), self.get_argument_resource_group_name(), self.get_argument_name())
+            service_connectors_def_list = update_connectors_with_two_parameters(service_connectors_def_list)
             self.set_argument_service_connectors_def_list(service_connectors_def_list)
             service_bindings_used_map = {update_item["name"]: False for update_item in service_bindings_def_list}
 

@@ -1191,9 +1191,7 @@ class ContainerappServiceBindingTests(ScenarioTest):
         if format_location(location) == format_location(STAGE_LOCATION):
             location = "eastus"
         self.cmd('configure --defaults location={}'.format(location))
-        kafka_arguments = []
-        for _ in range(6):
-            kafka_arguments.append(self.create_random_name(prefix='kafka', length=12))
+        kafka_arguments = [self.create_random_name(prefix='kafka', length=12) for _ in range(6)]
 
         env_id = prepare_containerapp_env_for_app_e2e_tests(self, location=location)
         env_rg = parse_resource_id(env_id).get('resource_group')
@@ -1201,8 +1199,8 @@ class ContainerappServiceBindingTests(ScenarioTest):
 
         #env_name = self.create_random_name(prefix='containerapp-env', length=24)
         ca_name = self.create_random_name(prefix='containerapp', length=24)
-        mysqlserver = "mysqlflexsb"
-        postgresqlserver = "postgresqlflexsb"
+        mysqlserver = self.create_random_name(prefix='mysqlflexsb', length=15)
+        postgresqlserver = self.create_random_name(prefix='postgresqlflexsb', length=20)
 
         mysqlflex_json= self.cmd('mysql flexible-server create --resource-group {} --name {} --public-access {} -y'.format(env_rg, mysqlserver, "None")).output
         postgresqlflex_json= self.cmd('postgres flexible-server create --resource-group {} --name {} --public-access {} -y'.format(env_rg, postgresqlserver, "None")).output
